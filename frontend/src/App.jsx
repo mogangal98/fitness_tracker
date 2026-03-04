@@ -208,6 +208,7 @@ function App() {
   const [adviceSource, setAdviceSource] = useState("");
   const [adviceFeedback, setAdviceFeedback] = useState("");
   const [userEquipment, setUserEquipment] = useState(localStorage.getItem("userEquipment") || "gym");
+  const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -646,13 +647,45 @@ function App() {
     : null;
 
   return (
-    <div className="container">
-      <h1>Fitness Tracker</h1>
+    <>
+      {/* ── Top navigation bar ─────────────────────────────────── */}
+      <header className="topbar">
+        <span className="topbar-brand">💪 Fitness Tracker</span>
 
-      {!token ? (
-        <div className="card">
-          <h2>{isRegister ? "Register" : "Login"}</h2>
-          <form onSubmit={handleAuthSubmit}>
+        {token && (
+          <>
+            <nav className="topbar-nav">
+              <button
+                type="button"
+                className={`topbar-nav-btn${!isAdminPage && !isProgramDetailsPage ? " active" : ""}`}
+                onClick={() => navigateTo("/")}
+              >
+                Dashboard
+              </button>
+              <button
+                type="button"
+                className={`topbar-nav-btn${isAdminPage ? " active" : ""}`}
+                onClick={() => navigateTo("/admin/workouts")}
+              >
+                Admin
+              </button>
+            </nav>
+
+            <div className="topbar-right">
+              <span className="topbar-user">👤 {userName}</span>
+              <button type="button" className="topbar-logout" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          </>
+        )}
+      </header>
+
+      <div className="container">
+        {!token ? (
+          <div className="card auth-card">
+            <h2>{isRegister ? "Register" : "Login"}</h2>
+            <form onSubmit={handleAuthSubmit}>
             {isRegister && (
               <input
                 type="text"
@@ -695,60 +728,6 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="card">
-            <h2>Welcome, {userName}</h2>
-            <p className="logged-in">LOGGED IN !!!</p>
-            <div className="top-links">
-              <a
-                href="/"
-                onClick={(event) => {
-                  event.preventDefault();
-                  navigateTo("/");
-                }}
-              >
-                Dashboard
-              </a>
-              <a
-                href="/admin/workouts"
-                onClick={(event) => {
-                  event.preventDefault();
-                  navigateTo("/admin/workouts");
-                }}
-              >
-                Admin panel
-              </a>
-            </div>
-            <button className="secondary" onClick={handleLogout}>
-              Logout
-            </button>
-
-            <div className="advice-box">
-              <div className="equipment-selector">
-                <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
-                <select
-                  id="equipment-select"
-                  value={userEquipment}
-                  onChange={(e) => handleEquipmentChange(e.target.value)}
-                >
-                  <option value="gym">Gym (full equipment)</option>
-                  <option value="dumbbells">Home (dumbbells only)</option>
-                  <option value="no equipment">No equipment (bodyweight)</option>
-                </select>
-              </div>
-              <button type="button" onClick={handleGetDailyAdvice}>
-                Get free daily workout advice
-              </button>
-              {adviceFeedback && <p>{adviceFeedback}</p>}
-              {dailyAdvice && (
-                <div className="advice-result">
-                  <h3 className="advice-result-title">Your Daily Advice</h3>
-                  <AdviceRenderer text={dailyAdvice} />
-                  <p className="field-hint">Source: {adviceSource}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
           {isProgramDetailsPage ? (
             <div className="card">
               <div className="details-header">
@@ -866,102 +845,117 @@ function App() {
           ) : (
             <>
               <div className="card">
-                <h2>Add fitness program</h2>
-                <form onSubmit={handleAddProgram}>
-                  <input
-                    type="text"
-                    placeholder="Program title"
-                    value={programTitle}
-                    onChange={(event) => setProgramTitle(event.target.value)}
-                    required
-                  />
-                  <div className="dropdown-panel">
-                    <p className="field-hint">Workout selector</p>
-                    <div className="selector-actions">
-                      <SearchableWorkoutDropdown
-                        workouts={workouts}
-                        searchQuery={createWorkoutSearch}
-                        setSearchQuery={setCreateWorkoutSearch}
-                        onSelect={handleCreateWorkoutSelect}
-                        triggerLabel="Select workout"
-                      />
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => setIsCreateCustomModalOpen(true)}
-                      >
-                        Add custom
-                      </button>
-                    </div>
-                  </div>
+                <div className="programs-header">
+                  <h2>Your programs</h2>
+                  <button
+                    type="button"
+                    className={isAddProgramOpen ? "secondary" : ""}
+                    onClick={() => {
+                      setIsAddProgramOpen((prev) => !prev);
+                      if (isAddProgramOpen) {
+                        setProgramItems([]);
+                        setProgramTitle("");
+                      }
+                    }}
+                  >
+                    {isAddProgramOpen ? "Cancel" : "+ New program"}
+                  </button>
+                </div>
 
-                  <div className="program-items">
-                    {programItems.map((item, itemIndex) => (
-                      <div
-                        className="program-item"
-                        key={`${item.workoutId ?? "custom"}-${item.name}-${itemIndex}`}
-                      >
-                        <strong>{item.name}</strong>
-                        <div className="numbers-row">
-                          <label>
-                            <span className="field-hint">Sets</span>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.sets ?? 1}
-                              onChange={(event) =>
-                                handleProgramItemChange(itemIndex, "sets", event.target.value)
-                              }
-                              placeholder="e.g. 3"
-                            />
-                          </label>
-                          <label>
-                            <span className="field-hint">Reps</span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.repetitions}
-                              onChange={(event) =>
-                                handleProgramItemChange(
-                                  itemIndex,
-                                  "repetitions",
-                                  event.target.value
-                                )
-                              }
-                              placeholder="e.g. 10"
-                            />
-                          </label>
-                          <label>
-                            <span className="field-hint">Weight (kg)</span>
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.weightKg}
-                              onChange={(event) =>
-                                handleProgramItemChange(itemIndex, "weightKg", event.target.value)
-                              }
-                              placeholder="e.g. 60"
-                            />
-                          </label>
-                        </div>
+                {isAddProgramOpen && (
+                  <form onSubmit={(e) => { handleAddProgram(e); setIsAddProgramOpen(false); }} className="add-program-form">
+                    <input
+                      type="text"
+                      placeholder="Program title"
+                      value={programTitle}
+                      onChange={(event) => setProgramTitle(event.target.value)}
+                      required
+                    />
+                    <div className="dropdown-panel">
+                      <p className="field-hint">Workout selector</p>
+                      <div className="selector-actions">
+                        <SearchableWorkoutDropdown
+                          workouts={workouts}
+                          searchQuery={createWorkoutSearch}
+                          setSearchQuery={setCreateWorkoutSearch}
+                          onSelect={handleCreateWorkoutSelect}
+                          triggerLabel="Select workout"
+                        />
                         <button
                           type="button"
                           className="secondary"
-                          onClick={() => handleRemoveWorkoutFromProgram(itemIndex)}
+                          onClick={() => setIsCreateCustomModalOpen(true)}
                         >
-                          Remove
+                          Add custom
                         </button>
                       </div>
-                    ))}
-                  </div>
-                  <button type="submit">Save program</button>
-                </form>
-              </div>
+                    </div>
 
-              <div className="card">
-                <h2>Your programs</h2>
-                {programs.length === 0 ? (
-                  <p>No programs yet.</p>
+                    <div className="program-items">
+                      {programItems.map((item, itemIndex) => (
+                        <div
+                          className="program-item"
+                          key={`${item.workoutId ?? "custom"}-${item.name}-${itemIndex}`}
+                        >
+                          <strong>{item.name}</strong>
+                          <div className="numbers-row">
+                            <label>
+                              <span className="field-hint">Sets</span>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.sets ?? 1}
+                                onChange={(event) =>
+                                  handleProgramItemChange(itemIndex, "sets", event.target.value)
+                                }
+                                placeholder="e.g. 3"
+                              />
+                            </label>
+                            <label>
+                              <span className="field-hint">Reps</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={item.repetitions}
+                                onChange={(event) =>
+                                  handleProgramItemChange(
+                                    itemIndex,
+                                    "repetitions",
+                                    event.target.value
+                                  )
+                                }
+                                placeholder="e.g. 10"
+                              />
+                            </label>
+                            <label>
+                              <span className="field-hint">Weight (kg)</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={item.weightKg}
+                                onChange={(event) =>
+                                  handleProgramItemChange(itemIndex, "weightKg", event.target.value)
+                                }
+                                placeholder="e.g. 60"
+                              />
+                            </label>
+                          </div>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => handleRemoveWorkoutFromProgram(itemIndex)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="submit">Save program</button>
+                  </form>
+                )}
+
+                {programs.length === 0 && !isAddProgramOpen ? (
+                  <p>No programs yet. Click "+ New program" to get started.</p>
                 ) : (
                   <ul>
                     {programs.map((program) => (
@@ -1112,6 +1106,36 @@ function App() {
               </div>
             </>
           )}
+
+          {!isAdminPage && (
+            <div className="card advice-card">
+              <div className="advice-box">
+                <div className="equipment-selector">
+                  <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
+                  <select
+                    id="equipment-select"
+                    value={userEquipment}
+                    onChange={(e) => handleEquipmentChange(e.target.value)}
+                  >
+                    <option value="gym">Gym (full equipment)</option>
+                    <option value="dumbbells">Home (dumbbells only)</option>
+                    <option value="no equipment">No equipment (bodyweight)</option>
+                  </select>
+                </div>
+                <button type="button" onClick={handleGetDailyAdvice}>
+                  Get free daily workout advice
+                </button>
+                {adviceFeedback && <p>{adviceFeedback}</p>}
+                {dailyAdvice && (
+                  <div className="advice-result">
+                    <h3 className="advice-result-title">Your Daily Advice</h3>
+                    <AdviceRenderer text={dailyAdvice} />
+                    <p className="field-hint">Source: {adviceSource}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -1174,6 +1198,7 @@ function App() {
         </div>
       )}
     </div>
+    </>
   );
 }
 
