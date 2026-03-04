@@ -14,6 +14,7 @@ function normalizeProgramItems(items) {
     .map((item) => ({
       workoutId: item.workoutId || null,
       name: item.name || "",
+      sets: Number.isInteger(Number(item.sets)) && Number(item.sets) > 0 ? Number(item.sets) : 1,
       repetitions: Number.isInteger(Number(item.repetitions)) ? Number(item.repetitions) : 0,
       weightKg: Number.isInteger(Number(item.weightKg)) ? Number(item.weightKg) : 0,
     }));

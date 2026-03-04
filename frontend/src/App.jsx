@@ -5,11 +5,13 @@ import {
   createProgram,
   deleteProgramWorkoutDate,
   getDailyAdvice,
+  getProfile,
   getPrograms,
   getWorkouts,
   loginUser,
   registerUser,
   softDeleteProgram,
+  updateEquipment,
   updateProgram,
 } from "./api";
 
@@ -80,6 +82,94 @@ function SearchableWorkoutDropdown({
   );
 }
 
+// Renders LLM markdown-style text into structured JSX
+function AdviceRenderer({ text }) {
+  if (!text) return null;
+
+  // Inline: replace **bold** with <strong>
+  function renderInline(line) {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) =>
+      part.startsWith("**") && part.endsWith("**")
+        ? <strong key={i}>{part.slice(2, -2)}</strong>
+        : part
+    );
+  }
+
+  const lines = text.split("\n");
+  const blocks = [];
+  let bulletBuffer = [];
+
+  function flushBullets() {
+    if (bulletBuffer.length === 0) return;
+    blocks.push(
+      <ul key={`ul-${blocks.length}`} className="advice-list">
+        {bulletBuffer.map((b, i) => (
+          <li key={i}>{renderInline(b)}</li>
+        ))}
+      </ul>
+    );
+    bulletBuffer = [];
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      flushBullets();
+      continue;
+    }
+
+    // Bullet line
+    if (/^[-•*]\s+/.test(trimmed)) {
+      bulletBuffer.push(trimmed.replace(/^[-•*]\s+/, ""));
+      continue;
+    }
+
+    // Numbered bullet  e.g. "1. ..."
+    if (/^\d+\.\s+/.test(trimmed)) {
+      bulletBuffer.push(trimmed.replace(/^\d+\.\s+/, ""));
+      continue;
+    }
+
+    flushBullets();
+
+    // Safety / Note line — special call-out
+    if (/^(safety|⚠|note)[:\s]/i.test(trimmed) || /^\*\*(safety|note)/i.test(trimmed)) {
+      const clean = trimmed.replace(/^\*\*(safety|note)[^*]*\*\*:?\s*/i, "").replace(/^(safety|note)[:\s]*/i, "");
+      blocks.push(
+        <div key={`safety-${i}`} className="advice-safety">
+          <span className="advice-safety-icon">⚠</span>
+          <span>{renderInline(clean || trimmed)}</span>
+        </div>
+      );
+      continue;
+    }
+
+    // Markdown heading: ### or ## or # OR bold-only line like **Title**
+    const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
+    const boldOnlyLine = trimmed.match(/^\*\*(.+)\*\*:?$/);
+    if (headingMatch) {
+      flushBullets();
+      blocks.push(<h4 key={`h-${i}`} className="advice-heading">{renderInline(headingMatch[1])}</h4>);
+      continue;
+    }
+    if (boldOnlyLine) {
+      flushBullets();
+      blocks.push(<h4 key={`h-${i}`} className="advice-heading">{boldOnlyLine[1]}</h4>);
+      continue;
+    }
+
+    // Regular paragraph
+    blocks.push(<p key={`p-${i}`} className="advice-para">{renderInline(trimmed)}</p>);
+  }
+
+  flushBullets();
+
+  return <div className="advice-body">{blocks}</div>;
+}
+
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isAdminPage = currentPath === "/admin/workouts";
@@ -117,6 +207,7 @@ function App() {
   const [dailyAdvice, setDailyAdvice] = useState("");
   const [adviceSource, setAdviceSource] = useState("");
   const [adviceFeedback, setAdviceFeedback] = useState("");
+  const [userEquipment, setUserEquipment] = useState(localStorage.getItem("userEquipment") || "gym");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -135,6 +226,7 @@ function App() {
     if (token) {
       loadPrograms(token);
       loadWorkouts(token);
+      loadProfile(token);
     }
   }, [token]);
 
@@ -156,6 +248,17 @@ function App() {
     }
   }
 
+  async function loadProfile(currentToken) {
+    try {
+      const profile = await getProfile(currentToken);
+      const eq = profile.equipment || "gym";
+      setUserEquipment(eq);
+      localStorage.setItem("userEquipment", eq);
+    } catch {
+      // non-critical — silently ignore
+    }
+  }
+
   function normalizeProgramItems(items) {
     if (!Array.isArray(items)) {
       return [];
@@ -164,6 +267,7 @@ function App() {
     return items.map((item) => ({
       workoutId: item.workoutId || item.workout_id || null,
       name: item.name || item.workout || "",
+      sets: Number.isInteger(Number(item.sets)) && Number(item.sets) > 0 ? Number(item.sets) : 1,
       repetitions: Number.isInteger(Number(item.repetitions)) ? Number(item.repetitions) : 0,
       weightKg: Number.isInteger(Number(item.weightKg)) ? Number(item.weightKg) : 0,
     }));
@@ -231,6 +335,7 @@ function App() {
         {
           workoutId: workout.id,
           name: workout.name,
+          sets: 1,
           repetitions: 0,
           weightKg: 0,
         },
@@ -254,6 +359,7 @@ function App() {
         {
           workoutId: null,
           name: customName,
+          sets: 1,
           repetitions: 0,
           weightKg: 0,
         },
@@ -317,6 +423,7 @@ function App() {
         {
           workoutId: workout.id,
           name: workout.name,
+          sets: 1,
           repetitions: 0,
           weightKg: 0,
         },
@@ -340,6 +447,7 @@ function App() {
         {
           workoutId: null,
           name: customName,
+          sets: 1,
           repetitions: 0,
           weightKg: 0,
         },
@@ -495,6 +603,17 @@ function App() {
     }
   }
 
+  async function handleEquipmentChange(newEquipment) {
+    setUserEquipment(newEquipment);
+    localStorage.setItem("userEquipment", newEquipment);
+    try {
+      await updateEquipment(token, newEquipment);
+      setMessage(`Equipment updated to "${newEquipment}".`);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   function formatDateTime(dateValue) {
     const parsed = new Date(dateValue);
     if (Number.isNaN(parsed.getTime())) {
@@ -604,15 +723,28 @@ function App() {
             </button>
 
             <div className="advice-box">
+              <div className="equipment-selector">
+                <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
+                <select
+                  id="equipment-select"
+                  value={userEquipment}
+                  onChange={(e) => handleEquipmentChange(e.target.value)}
+                >
+                  <option value="gym">Gym (full equipment)</option>
+                  <option value="dumbbells">Home (dumbbells only)</option>
+                  <option value="no equipment">No equipment (bodyweight)</option>
+                </select>
+              </div>
               <button type="button" onClick={handleGetDailyAdvice}>
                 Get free daily workout advice
               </button>
               {adviceFeedback && <p>{adviceFeedback}</p>}
               {dailyAdvice && (
-                <>
-                  <p>{dailyAdvice}</p>
+                <div className="advice-result">
+                  <h3 className="advice-result-title">Your Daily Advice</h3>
+                  <AdviceRenderer text={dailyAdvice} />
                   <p className="field-hint">Source: {adviceSource}</p>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -644,7 +776,10 @@ function App() {
                           <strong>Workout:</strong> {item.name}
                         </p>
                         <p>
-                          <strong>Repetitions:</strong> {item.repetitions}
+                          <strong>Sets:</strong> {item.sets ?? 1}
+                        </p>
+                        <p>
+                          <strong>Reps:</strong> {item.repetitions}
                         </p>
                         <p>
                           <strong>Weight:</strong> {item.weightKg} kg
@@ -769,7 +904,19 @@ function App() {
                         <strong>{item.name}</strong>
                         <div className="numbers-row">
                           <label>
-                            <span className="field-hint">Repetitions (count)</span>
+                            <span className="field-hint">Sets</span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.sets ?? 1}
+                              onChange={(event) =>
+                                handleProgramItemChange(itemIndex, "sets", event.target.value)
+                              }
+                              placeholder="e.g. 3"
+                            />
+                          </label>
+                          <label>
+                            <span className="field-hint">Reps</span>
                             <input
                               type="number"
                               min="0"
@@ -856,7 +1003,19 @@ function App() {
                                   <strong>{item.name}</strong>
                                   <div className="numbers-row">
                                     <label>
-                                      <span className="field-hint">Repetitions (count)</span>
+                                      <span className="field-hint">Sets</span>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={item.sets ?? 1}
+                                        onChange={(event) =>
+                                          handleEditItemChange(itemIndex, "sets", event.target.value)
+                                        }
+                                        placeholder="e.g. 3"
+                                      />
+                                    </label>
+                                    <label>
+                                      <span className="field-hint">Reps</span>
                                       <input
                                         type="number"
                                         min="0"
@@ -916,7 +1075,7 @@ function App() {
                             <ul className="program-readonly-items">
                               {normalizeProgramItems(program.description).map((item, index) => (
                                 <li key={`${program.id}-${item.workoutId || item.name}-${index}`}>
-                                  {item.name} - {item.repetitions} reps - {item.weightKg} kg
+                                  {item.name} — {item.sets ?? 1}×{item.repetitions} reps @ {item.weightKg} kg
                                 </li>
                               ))}
                             </ul>

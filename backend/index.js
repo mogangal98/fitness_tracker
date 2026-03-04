@@ -7,6 +7,7 @@ const authRoutes = require("./routes/auth");
 const programRoutes = require("./routes/programs");
 const workoutRoutes = require("./routes/workouts");
 const adviceRoutes = require("./routes/advice");
+const userRoutes = require("./routes/users");
 
 const app = express();
 app.use(cors());
@@ -31,6 +32,26 @@ async function initDb() {
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS last_advice_at TIMESTAMP,
     ADD COLUMN IF NOT EXISTS last_advice_text TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS equipment VARCHAR(30) NOT NULL DEFAULT 'no equipment';
+  `);
+
+  // Add CHECK constraint if it doesn't already exist
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'users_equipment_check'
+      ) THEN
+        ALTER TABLE users
+        ADD CONSTRAINT users_equipment_check
+        CHECK (equipment IN ('gym', 'dumbbells', 'no equipment'));
+      END IF;
+    END $$;
   `);
 
   await pool.query(`
@@ -164,6 +185,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/programs", programRoutes);
 app.use("/api/workouts", workoutRoutes);
 app.use("/api/advice", adviceRoutes);
+app.use("/api/users", userRoutes);
 
 initDb()
   .then(async () => {

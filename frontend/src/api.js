@@ -118,6 +118,27 @@ export async function getDailyAdvice(token) {
   return parseResponse(response);
 }
 
+export async function getProfile(token) {
+  const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return parseResponse(response);
+}
+
+export async function updateEquipment(token, equipment) {
+  const response = await fetch(`${API_BASE_URL}/api/users/me/equipment`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ equipment }),
+  });
+
+  return parseResponse(response);
+}
+
 export async function bulkCreateWorkouts(token, payload) {
   const response = await fetch(`${API_BASE_URL}/api/workouts/bulk`, {
     method: "POST",
