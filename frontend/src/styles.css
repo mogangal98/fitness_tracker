@@ -1,0 +1,357 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: #0f172a;
+  background-color: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.container {
+  max-width: 640px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+h1 {
+  text-align: center;
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.logged-in {
+  font-weight: 700;
+  color: #166534;
+}
+
+.top-links {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.top-links a {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+button {
+  cursor: pointer;
+  background: #0f172a;
+  color: white;
+  border: none;
+}
+
+button.secondary {
+  background: #334155;
+  margin-top: 0.75rem;
+}
+
+button.danger {
+  background: #991b1b;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+li {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.program-edit {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.dropdown-row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.dropdown-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.custom-dropdown {
+  position: relative;
+  flex: 1;
+}
+
+.dropdown-trigger {
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.dropdown-menu {
+  margin-top: 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.5rem;
+}
+
+.dropdown-options {
+  margin-top: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dropdown-option {
+  width: 100%;
+  text-align: left;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+.selector-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.selector-actions > button {
+  margin-top: 0;
+}
+
+.program-items {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.program-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.numbers-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.numbers-row label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: #475569;
+  margin: 0;
+}
+
+.program-readonly-items {
+  list-style: disc;
+  margin: 0.5rem 0 0 1.25rem;
+  padding: 0;
+  display: block;
+}
+
+.program-readonly-items li {
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.program-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.details-header .secondary {
+  margin-top: 0;
+}
+
+.detail-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.detail-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.date-tracking {
+  margin-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+}
+
+.manual-date-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.manual-date-row .secondary {
+  margin-top: 0;
+}
+
+.date-list {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.date-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+
+.date-list .danger {
+  margin-top: 0;
+}
+
+.deleted-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+.bulk-input {
+  min-height: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
+
+.bulk-result {
+  margin-top: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal-card {
+  width: min(560px, 100%);
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.modal-card textarea {
+  min-height: 120px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.advice-box {
+  margin-top: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.advice-box .field-hint {
+  margin-top: 0;
+}
+
+p {
+  margin: 0.25rem 0;
+}
+
+.message {
+  color: #166534;
+  text-align: center;
+}
+
+.error {
+  color: #b91c1c;
+  text-align: center;
+}
