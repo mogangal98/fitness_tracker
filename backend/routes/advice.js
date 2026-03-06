@@ -1,8 +1,18 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const authMiddleware = require("../middleware/auth");
 const pool = require("../db");
 
 const router = express.Router();
+
+const adviceLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => req.user?.id?.toString() || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many advice requests. Please wait a minute and try again." },
+});
 
 function sameUtcDay(dateA, dateB) {
   return (
@@ -295,7 +305,7 @@ async function fetchCloudAdvice(name, programs, ragChunks, equipment = "gym") {
   throw new Error(lastError?.message || "Failed to fetch Hugging Face advice");
 }
 
-router.post("/daily", authMiddleware, async (req, res) => {
+router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
   try {
     const requestedProgramId = Number(req.body?.programId) || null;
 
