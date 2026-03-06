@@ -45,7 +45,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT id, name, email, password_hash FROM users WHERE email = $1",
+      "SELECT id, name, email, password_hash, role FROM users WHERE email = $1",
       [email]
     );
 
@@ -60,8 +60,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    // We can include role in the token payload for authorization 
     const token = jwt.sign(
-      { id: user.id, email: user.email, name: user.name },
+      { id: user.id, email: user.email, name: user.name, role: user.role },
       process.env.JWT_SECRET || "dev-secret-change-me",
       { expiresIn: "7d" }
     );
@@ -69,7 +70,7 @@ router.post("/login", async (req, res) => {
     return res.json({
       message: "Login successful",
       token,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
     console.error("Login error:", error.message);

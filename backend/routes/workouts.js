@@ -1,6 +1,7 @@
 const express = require("express");
 const pool = require("../db");
 const authMiddleware = require("../middleware/auth");
+const adminOnly = require("../middleware/adminOnly");
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/", authMiddleware, async (req, res) => {
+router.post("/", authMiddleware, adminOnly, async (req, res) => {
   const { name, description, muscleGroup } = normalizeWorkoutItem(req.body);
 
   if (!name) {
@@ -53,7 +54,7 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/bulk", authMiddleware, async (req, res) => {
+router.post("/bulk", authMiddleware, adminOnly, async (req, res) => {
   const payload = req.body;
 
   if (!Array.isArray(payload) || payload.length === 0) {

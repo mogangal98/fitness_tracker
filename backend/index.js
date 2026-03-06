@@ -39,6 +39,26 @@ async function initDb() {
     ADD COLUMN IF NOT EXISTS equipment VARCHAR(30) NOT NULL DEFAULT 'no equipment';
   `);
 
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';
+  `);
+
+  // Add CHECK constraint for role if it doesn't already exist
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'users_role_check'
+      ) THEN
+        ALTER TABLE users
+        ADD CONSTRAINT users_role_check
+        CHECK (role IN ('admin', 'user'));
+      END IF;
+    END $$;
+  `);
+
   // Add CHECK constraint if it doesn't already exist
   await pool.query(`
     DO $$

@@ -184,6 +184,7 @@ function App() {
 
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [userName, setUserName] = useState(localStorage.getItem("userName") || "");
+  const [userRole, setUserRole] = useState(localStorage.getItem("userRole") || "user");
   const [programs, setPrograms] = useState([]);
   const [workouts, setWorkouts] = useState([]);
   const [createWorkoutSearch, setCreateWorkoutSearch] = useState("");
@@ -255,6 +256,10 @@ function App() {
       const eq = profile.equipment || "gym";
       setUserEquipment(eq);
       localStorage.setItem("userEquipment", eq);
+      if (profile.role) {
+        setUserRole(profile.role);
+        localStorage.setItem("userRole", profile.role);
+      }
     } catch {
       // non-critical — silently ignore
     }
@@ -291,8 +296,10 @@ function App() {
       const data = await loginUser({ email, password });
       setToken(data.token);
       setUserName(data.user.name);
+      setUserRole(data.user.role || "user");
       localStorage.setItem("token", data.token);
       localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userRole", data.user.role || "user");
       setMessage("Login successful.");
     } catch (err) {
       setError(err.message);
@@ -636,9 +643,11 @@ function App() {
   function handleLogout() {
     setToken("");
     setUserName("");
+    setUserRole("user");
     setPrograms([]);
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
+    localStorage.removeItem("userRole");
     navigateTo("/");
   }
 
@@ -662,13 +671,15 @@ function App() {
               >
                 Dashboard
               </button>
-              <button
-                type="button"
-                className={`topbar-nav-btn${isAdminPage ? " active" : ""}`}
-                onClick={() => navigateTo("/admin/workouts")}
-              >
-                Admin
-              </button>
+              {userRole === "admin" && (
+                <button
+                  type="button"
+                  className={`topbar-nav-btn${isAdminPage ? " active" : ""}`}
+                  onClick={() => navigateTo("/admin/workouts")}
+                >
+                  Admin
+                </button>
+              )}
             </nav>
 
             <div className="topbar-right">
@@ -728,7 +739,7 @@ function App() {
         </div>
       ) : (
         <>
-          {isProgramDetailsPage ? (
+0          {isProgramDetailsPage ? (
             <div className="card">
               <div className="details-header">
                 <h2>Program details</h2>
@@ -821,6 +832,10 @@ function App() {
                   </div>
                 </>
               )}
+            </div>
+          ) : isAdminPage && userRole !== "admin" ? (
+            <div className="card">
+              <p>You do not have permission to view this page.</p>
             </div>
           ) : isAdminPage ? (
             <div className="card">

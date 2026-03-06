@@ -10,7 +10,7 @@ const VALID_EQUIPMENT = ["gym", "dumbbells", "no equipment"];
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, email, equipment, last_advice_at, created_at FROM users WHERE id = $1",
+      "SELECT id, name, email, equipment, role, last_advice_at, created_at FROM users WHERE id = $1",
       [req.user.id]
     );
 
