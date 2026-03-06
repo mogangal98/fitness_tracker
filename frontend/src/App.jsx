@@ -1145,7 +1145,6 @@ function App() {
                   <div className="advice-result">
                     <h3 className="advice-result-title">Your Daily Advice</h3>
                     <AdviceRenderer text={dailyAdvice} />
-                    <p className="field-hint">Source: {adviceSource}</p>
                   </div>
                 )}
               </div>
