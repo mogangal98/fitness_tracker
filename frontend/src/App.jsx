@@ -570,14 +570,9 @@ function App() {
       const result = await getDailyAdvice(token);
       setDailyAdvice(result.advice || "No advice returned");
       setAdviceSource(result.source || "unknown");
-      if (result.reused) {
-        setAdviceFeedback("You have no free advice left today. Showing your last saved advice. Please wait for tomorrow.");
-      } else {
-        setAdviceFeedback("New free advice generated for today.");
-      }
     } catch (err) {
-      if (err.message && err.message.toLowerCase().includes("already received")) {
-        setAdviceFeedback("You have no free advice left today. Please wait for tomorrow.");
+      if (err.status === 429 || (err.message && (err.message.includes("daily advice") || err.message.includes("already received")))) {
+        setAdviceFeedback("You've used all your free advice for today. Come back tomorrow!");
         return;
       }
 

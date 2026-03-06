@@ -310,7 +310,7 @@ router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
     const requestedProgramId = Number(req.body?.programId) || null;
 
     const userResult = await pool.query(
-      "SELECT id, name, equipment, last_advice_at, last_advice_text FROM users WHERE id = $1",
+      "SELECT id, name, equipment, last_advice_at, last_advice_text, daily_advice_count FROM users WHERE id = $1",
       [req.user.id]
     );
 
@@ -347,47 +347,17 @@ router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
 
     const targetProgram = targetProgramResult.rows[0] || null;
 
-    // Daily limit temporarily disabled.
-    // Keep this block for future re-enable:
-    // if (user.last_advice_at && sameUtcDay(new Date(user.last_advice_at), now)) {
-    //   if (user.last_advice_text) {
-    //     return res.json({
-    //       advice: user.last_advice_text,
-    //       generatedAt: user.last_advice_at,
-    //       source: "cached",
-    //       reused: true,
-    //       message: "Daily free advice already used. Returning last saved advice.",
-    //       programId: targetProgram?.id || null,
-    //     });
-    //   }
-    //
-    //   const lastProgramAdviceResult = await pool.query(
-    //     `
-    //       SELECT id, last_advice_text, last_advice_at
-    //       FROM fitness_programs
-    //       WHERE user_id = $1
-    //         AND deleted = FALSE
-    //         AND last_advice_text IS NOT NULL
-    //       ORDER BY last_advice_at DESC NULLS LAST, created_at DESC
-    //       LIMIT 1
-    //     `,
-    //     [req.user.id]
-    //   );
-    //
-    //   if (lastProgramAdviceResult.rows.length > 0) {
-    //     const lastAdvice = lastProgramAdviceResult.rows[0];
-    //     return res.json({
-    //       advice: lastAdvice.last_advice_text,
-    //       generatedAt: lastAdvice.last_advice_at,
-    //       source: "cached",
-    //       reused: true,
-    //       message: "Daily free advice already used. Returning last saved advice.",
-    //       programId: lastAdvice.id,
-    //     });
-    //   }
-    //
-    //   return res.status(429).json({ message: "You already received your free advice today" });
-    // }
+    const DAILY_LIMIT = 3;
+    const lastAt = user.last_advice_at ? new Date(user.last_advice_at) : null;
+    const isNewDay = !lastAt || lastAt.toUTCString().slice(0, 16) !== now.toUTCString().slice(0, 16);
+    const currentCount = isNewDay ? 0 : (user.daily_advice_count || 0);
+
+    if (currentCount >= DAILY_LIMIT) {
+      return res.status(429).json({
+        message: `You have used all ${DAILY_LIMIT} daily advice requests. Come back tomorrow!`,
+        reused: false,
+      });
+    }
 
     const programsResult = await pool.query(
       "SELECT title, description FROM fitness_programs WHERE user_id = $1 AND deleted = FALSE ORDER BY created_at DESC LIMIT 5",
@@ -409,8 +379,8 @@ router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
     }
 
     await pool.query(
-      "UPDATE users SET last_advice_at = NOW(), last_advice_text = $1 WHERE id = $2",
-      [advice, req.user.id]
+      "UPDATE users SET last_advice_at = NOW(), last_advice_text = $1, daily_advice_count = $2 WHERE id = $3",
+      [advice, currentCount + 1, req.user.id]
     );
 
     if (targetProgram) {
