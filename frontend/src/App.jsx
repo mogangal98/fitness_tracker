@@ -739,7 +739,7 @@ function App() {
         </div>
       ) : (
         <>
-0          {isProgramDetailsPage ? (
+          {isProgramDetailsPage ? (
             <div className="card">
               <div className="details-header">
                 <h2>Program details</h2>
