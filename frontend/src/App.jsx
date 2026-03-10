@@ -561,10 +561,13 @@ function App() {
     }
   }
 
+  const [adviceLoading, setAdviceLoading] = useState(false);
+
   async function handleGetDailyAdvice() {
     setError("");
     setMessage("");
     setAdviceFeedback("");
+    setAdviceLoading(true);
 
     try {
       const result = await getDailyAdvice(token);
@@ -573,10 +576,11 @@ function App() {
     } catch (err) {
       if (err.status === 429 || (err.message && (err.message.includes("daily advice") || err.message.includes("already received")))) {
         setAdviceFeedback("You've used all your free advice for today. Come back tomorrow!");
-        return;
+      } else {
+        setError(err.message);
       }
-
-      setError(err.message);
+    } finally {
+      setAdviceLoading(false);
     }
   }
 
@@ -1132,8 +1136,8 @@ function App() {
                     <option value="no equipment">No equipment (bodyweight)</option>
                   </select>
                 </div>
-                <button type="button" onClick={handleGetDailyAdvice}>
-                  Get free daily workout advice
+                <button type="button" onClick={handleGetDailyAdvice} disabled={adviceLoading}>
+                  {adviceLoading ? "Generating advice…" : "Get free daily workout advice"}
                 </button>
                 {adviceFeedback && <p>{adviceFeedback}</p>}
                 {dailyAdvice && (

@@ -147,6 +147,20 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button:not(:disabled):hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+button:not(:disabled):active {
+  transform: scale(0.96);
+  filter: brightness(0.9);
+}
+
+button {
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
 ul {
   list-style: none;
   padding: 0;
