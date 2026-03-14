@@ -291,7 +291,7 @@ function App() {
     event.preventDefault();
     setError("");
     setMessage("");
-    setAuthWaitHint("pls wait, it can take several minutes");
+    setAuthWaitHint("pls wait, request is being processed, it can take several minutes");
     setAuthLoading(true);
 
     try {
@@ -784,14 +784,17 @@ function App() {
             </div>
 
             {!exampleAdvice && (
-              <button
-                type="button"
-                className="info-example-btn"
-                onClick={handleGetExampleAdvice}
-                disabled={exampleAdviceLoading}
-              >
-                {exampleAdviceLoading ? "Fetching recommendation…" : "Get example AI recommendation"}
-              </button>
+              <>
+                <p className="about-hint">⏳ The first request may take a couple of minutes. The website works on render. This might happen when it stays idle for a while..</p>
+                <button
+                  type="button"
+                  className="info-example-btn"
+                  onClick={handleGetExampleAdvice}
+                  disabled={exampleAdviceLoading}
+                >
+                  {exampleAdviceLoading ? "Fetching recommendation…" : "Get example AI recommendation"}
+                </button>
+              </>
             )}
 
             {exampleAdviceError && <p className="error">{exampleAdviceError}</p>}
@@ -859,6 +862,7 @@ function App() {
           >
             {isRegister ? "Already have an account? Login" : "No account? Register"}
           </button>
+          <p className="auth-meta-hint">No email activation needed, throwaway emails can be used.</p>
         </div>
       ) : (
         <>
