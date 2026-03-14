@@ -185,6 +185,18 @@ async function initDb() {
     ) AS seed(title, content, tags)
     WHERE NOT EXISTS (SELECT 1 FROM advice_knowledge_chunks);
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS example_advice_cache (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      advice TEXT,
+      generated_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(
+    "INSERT INTO example_advice_cache (id) VALUES (1) ON CONFLICT (id) DO NOTHING;"
+  );
 }
 
 async function initDailyAdviceResetJob() {

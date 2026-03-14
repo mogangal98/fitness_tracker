@@ -47,6 +47,19 @@ body {
   letter-spacing: -0.02em;
   white-space: nowrap;
   margin-right: auto;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.topbar-brand:hover {
+  opacity: 0.75;
+  background: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .topbar-nav {
@@ -578,4 +591,151 @@ p {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 0.55rem 0.65rem;
+}
+
+/* ── Info / About page ───────────────────────────────────── */
+.info-card {
+  max-width: 520px;
+  margin: 3rem auto 0;
+  text-align: center;
+}
+
+.info-hero {
+  font-size: 3rem;
+  margin: 0 0 0.5rem;
+  line-height: 1;
+}
+
+.info-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 1rem;
+  color: var(--text-main);
+}
+
+.info-description {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+  margin: 0 0 1.5rem;
+}
+
+.info-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: grid;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.info-features li {
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  background: #f3f4f6;
+  border-left: 3px solid var(--btn-main);
+  font-size: 0.92rem;
+  color: var(--text-main);
+}
+
+.info-cta {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.75rem 2.2rem;
+  border-radius: 10px;
+  letter-spacing: 0.01em;
+}
+
+/* ── About page — example section ────────────────────────── */
+.info-example {
+  max-width: 520px;
+  margin: 1.5rem auto 0;
+}
+
+.info-example-heading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.25rem;
+  color: var(--text-main);
+}
+
+.info-example-sub {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+}
+
+.example-program-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.example-program-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.example-equipment-badge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  color: var(--text-muted);
+}
+
+.example-exercises {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.example-exercises li {
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.88rem;
+  background: #f3f4f6;
+  border-left: 3px solid var(--btn-main);
+  color: var(--text-main);
+}
+
+.info-example-btn {
+  width: 100%;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.7rem 1.5rem;
+  border-radius: 10px;
+}
+
+.example-advice-result {
+  margin-top: 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.example-advice-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }

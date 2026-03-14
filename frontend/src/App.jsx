@@ -5,6 +5,7 @@ import {
   createProgram,
   deleteProgramWorkoutDate,
   getDailyAdvice,
+  getExampleAdvice,
   getProfile,
   getPrograms,
   getWorkouts,
@@ -173,6 +174,8 @@ function AdviceRenderer({ text }) {
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isAdminPage = currentPath === "/admin/workouts";
+  const isAboutPage = currentPath === "/about" || (currentPath === "/" && !localStorage.getItem("token"));
+  const isLoginPage = currentPath === "/login";
   const detailsMatch = currentPath.match(/^\/programs\/(\d+)$/);
   const isProgramDetailsPage = Boolean(detailsMatch);
   const programDetailsId = detailsMatch ? Number(detailsMatch[1]) : null;
@@ -214,6 +217,9 @@ function App() {
   const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [exampleAdvice, setExampleAdvice] = useState("");
+  const [exampleAdviceLoading, setExampleAdviceLoading] = useState(false);
+  const [exampleAdviceError, setExampleAdviceError] = useState("");
 
   useEffect(() => {
     const onPopState = () => {
@@ -570,6 +576,19 @@ function App() {
 
   const [adviceLoading, setAdviceLoading] = useState(false);
 
+  async function handleGetExampleAdvice() {
+    setExampleAdviceLoading(true);
+    setExampleAdviceError("");
+    try {
+      const result = await getExampleAdvice();
+      setExampleAdvice(result.advice || "");
+    } catch (err) {
+      setExampleAdviceError(err.message || "Could not load recommendation. Please try again.");
+    } finally {
+      setExampleAdviceLoading(false);
+    }
+  }
+
   async function handleGetDailyAdvice() {
     setError("");
     setMessage("");
@@ -654,7 +673,7 @@ function App() {
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
     localStorage.removeItem("userRole");
-    navigateTo("/");
+    navigateTo("/about");
   }
 
   const selectedProgram = isProgramDetailsPage
@@ -665,14 +684,14 @@ function App() {
     <>
       {/* ── Top navigation bar ─────────────────────────────────── */}
       <header className="topbar">
-        <span className="topbar-brand">Fitness Tracker</span>
+        <button type="button" className="topbar-brand" onClick={() => navigateTo("/about")}>Fitness Tracker</button>
 
-        {token && (
-          <>
-            <nav className="topbar-nav">
+        <nav className="topbar-nav">
+          {token ? (
+            <>
               <button
                 type="button"
-                className={`topbar-nav-btn${!isAdminPage && !isProgramDetailsPage ? " active" : ""}`}
+                className={`topbar-nav-btn${!isAdminPage && !isProgramDetailsPage && !isAboutPage ? " active" : ""}`}
                 onClick={() => navigateTo("/")}
               >
                 Dashboard
@@ -686,20 +705,106 @@ function App() {
                   Admin
                 </button>
               )}
-            </nav>
+            </>
+          ) : (
+            <button
+              type="button"
+              className={`topbar-nav-btn${isLoginPage ? " active" : ""}`}
+              onClick={() => navigateTo("/login")}
+            >
+              Login
+            </button>
+          )}
+          <button
+            type="button"
+            className={`topbar-nav-btn${isAboutPage ? " active" : ""}`}
+            onClick={() => navigateTo("/about")}
+          >
+            About
+          </button>
+        </nav>
 
-            <div className="topbar-right">
-              <span className="topbar-user">👤 {userName}</span>
-              <button type="button" className="topbar-logout" onClick={handleLogout}>
-                Logout
-              </button>
-            </div>
-          </>
+        {token && (
+          <div className="topbar-right">
+            <span className="topbar-user">👤 {userName}</span>
+            <button type="button" className="topbar-logout" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
         )}
       </header>
 
       <div className="container">
-        {!token ? (
+        {isAboutPage ? (
+          <>
+          <div className="card info-card">
+            <p className="info-hero">💪</p>
+            <h1 className="info-title">Fitness Tracker</h1>
+            <p className="info-description">
+              A simple but powerful fitness tracker that helps you build and manage your workout
+              programs. Log your sessions, track your history, and get{" "}
+              <strong>personalized AI recommendations</strong> tailored to your equipment.
+            </p>
+            <ul className="info-features">
+              <li>📋 Create and manage custom workout programs</li>
+              <li>📅 Log every session and track your history</li>
+              <li>🤖 Get daily AI-powered workout advice</li>
+              <li>🏋️ Works for gym, home, or bodyweight training</li>
+            </ul>
+            <button
+              type="button"
+              className="info-cta"
+              onClick={() => {
+                setIsRegister(true);
+                navigateTo("/login");
+              }}
+            >
+              I want to try it →
+            </button>
+          </div>
+
+          <div className="info-example">
+            <h2 className="info-example-heading">See it in action</h2>
+            <p className="info-example-sub">Here's an example home dumbbell program and what the AI recommends for it.</p>
+
+            <div className="example-program-card">
+              <div className="example-program-header">
+                <strong>Home Dumbbell Full Body</strong>
+                <span className="example-equipment-badge">Home Equipment: Dumbbells</span>
+              </div>
+              <ul className="example-exercises">
+                <li>Floor Dumbbell Press — 3 × 10</li>
+                <li>Dumbbell Row — 3 × 10</li>
+                <li>Shoulder Press — 3 × 12</li>
+                <li>Dumbbell Concentration Curls — 3 × 12</li>
+                <li>Overhead Triceps Extension — 3 × 12</li>
+                <li>Squats — 4 × 15</li>
+                <li>Calf Raises — 3 × 20</li>
+              </ul>
+            </div>
+
+            {!exampleAdvice && (
+              <button
+                type="button"
+                className="info-example-btn"
+                onClick={handleGetExampleAdvice}
+                disabled={exampleAdviceLoading}
+              >
+                {exampleAdviceLoading ? "Fetching recommendation…" : "Get example AI recommendation"}
+              </button>
+            )}
+
+            {exampleAdviceError && <p className="error">{exampleAdviceError}</p>}
+
+            {exampleAdvice && (
+              <div className="example-advice-result">
+                <h3 className="example-advice-title">AI Recommendation</h3>
+                <AdviceRenderer text={exampleAdvice} />
+              </div>
+            )}
+          </div>
+          </>
+        ) : isLoginPage && !token ? (
           <div className="card auth-card">
             <h2>{isRegister ? "Register" : "Login"}</h2>
             <form onSubmit={handleAuthSubmit}>

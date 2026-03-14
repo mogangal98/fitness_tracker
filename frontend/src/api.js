@@ -139,6 +139,11 @@ export async function updateEquipment(token, equipment) {
   return parseResponse(response);
 }
 
+export async function getExampleAdvice() {
+  const response = await fetch(`${API_BASE_URL}/api/advice/example`);
+  return parseResponse(response);
+}
+
 export async function bulkCreateWorkouts(token, payload) {
   const response = await fetch(`${API_BASE_URL}/api/workouts/bulk`, {
     method: "POST",

@@ -305,6 +305,63 @@ async function fetchCloudAdvice(name, programs, ragChunks, equipment = "gym") {
   throw new Error(lastError?.message || "Failed to fetch Hugging Face advice");
 }
 
+const EXAMPLE_PROGRAM = [
+  {
+    title: "Home Dumbbell Full Body",
+    description: [
+      { name: "Floor Dumbbell Press", sets: 3, repetitions: 10, weightKg: 0 },
+      { name: "Dumbbell Row", sets: 3, repetitions: 10, weightKg: 0 },
+      { name: "Shoulder Press", sets: 3, repetitions: 12, weightKg: 0 },
+      { name: "Dumbbell Concentration Curls", sets: 3, repetitions: 12, weightKg: 0 },
+      { name: "Overhead Triceps Extension", sets: 3, repetitions: 12, weightKg: 0 },
+      { name: "Squats", sets: 4, repetitions: 15, weightKg: 0 },
+      { name: "Calf Raises", sets: 3, repetitions: 20, weightKg: 0 },
+    ],
+  },
+];
+
+router.get("/example", async (req, res) => {
+  try {
+    // Ensure table and seed row exist regardless of whether initDb has run
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS example_advice_cache (
+        id INTEGER PRIMARY KEY,
+        advice TEXT,
+        generated_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await pool.query(
+      "INSERT INTO example_advice_cache (id) VALUES (1) ON CONFLICT (id) DO NOTHING;"
+    );
+
+    const cached = await pool.query(
+      "SELECT advice FROM example_advice_cache WHERE id = 1 AND advice IS NOT NULL"
+    );
+    if (cached.rows.length > 0) {
+      return res.json({ advice: cached.rows[0].advice, source: "cached" });
+    }
+
+    const ragChunks = await getRagContext(EXAMPLE_PROGRAM);
+    let advice;
+    try {
+      advice = await fetchCloudAdvice("Alex", EXAMPLE_PROGRAM, ragChunks, "dumbbells");
+    } catch (cloudErr) {
+      console.warn("Example advice cloud fallback:", cloudErr.message);
+      advice = buildFallbackAdvice("Alex", EXAMPLE_PROGRAM, "dumbbells");
+    }
+
+    await pool.query(
+      "UPDATE example_advice_cache SET advice = $1, generated_at = NOW() WHERE id = 1",
+      [advice]
+    );
+
+    return res.json({ advice, source: "generated" });
+  } catch (err) {
+    console.error("Example advice error:", err.message);
+    return res.status(500).json({ message: err.message || "Failed to get example advice" });
+  }
+});
+
 router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
   try {
     const requestedProgramId = Number(req.body?.programId) || null;
