@@ -3,6 +3,8 @@
 Fitness tracker built with React + Node.js.
 
 This project lets users create and manage workout programs, track workout dates, and get AI-generated daily workout advice (Hugging Face cloud inference).
+
+Live Demo: https://fitness-tracker-frontend-z93l.onrender.com/
 ---
 
 ## Tech stack
