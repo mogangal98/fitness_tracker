@@ -178,6 +178,8 @@ function App() {
   const programDetailsId = detailsMatch ? Number(detailsMatch[1]) : null;
 
   const [isRegister, setIsRegister] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authWaitHint, setAuthWaitHint] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -283,6 +285,8 @@ function App() {
     event.preventDefault();
     setError("");
     setMessage("");
+    setAuthWaitHint("pls wait, it can take several minutes");
+    setAuthLoading(true);
 
     try {
       if (isRegister) {
@@ -303,6 +307,9 @@ function App() {
       setMessage("Login successful.");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setAuthLoading(false);
+      setAuthWaitHint("");
     }
   }
 
@@ -658,7 +665,7 @@ function App() {
     <>
       {/* ── Top navigation bar ─────────────────────────────────── */}
       <header className="topbar">
-        <span className="topbar-brand">💪 Fitness Tracker</span>
+        <span className="topbar-brand">Fitness Tracker</span>
 
         {token && (
           <>
@@ -722,15 +729,27 @@ function App() {
               required
             />
 
-            <button type="submit">{isRegister ? "Create account" : "Login"}</button>
+            <button type="submit" disabled={authLoading}>
+              {authLoading
+                ? isRegister
+                  ? "Creating account..."
+                  : "Logging in..."
+                : isRegister
+                  ? "Create account"
+                  : "Login"}
+            </button>
+            {authWaitHint && <p className="auth-wait-hint">{authWaitHint}</p>}
           </form>
 
           <button
             className="secondary"
+            type="button"
+            disabled={authLoading}
             onClick={() => {
               setIsRegister((prev) => !prev);
               setMessage("");
               setError("");
+              setAuthWaitHint("");
             }}
           >
             {isRegister ? "Already have an account? Login" : "No account? Register"}
