@@ -144,6 +144,30 @@ export async function getExampleAdvice() {
   return parseResponse(response);
 }
 
+export async function trackVisit() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/tracking/visit`, {
+      method: "POST",
+    });
+    return parseResponse(response);
+  } catch {
+    return null;
+  }
+}
+
+export async function trackExampleAdviceClick(visitId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/tracking/example-advice-click`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitId }),
+    });
+    return parseResponse(response);
+  } catch {
+    return null;
+  }
+}
+
 export async function bulkCreateWorkouts(token, payload) {
   const response = await fetch(`${API_BASE_URL}/api/workouts/bulk`, {
     method: "POST",

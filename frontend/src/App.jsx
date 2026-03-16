@@ -12,6 +12,8 @@ import {
   loginUser,
   registerUser,
   softDeleteProgram,
+  trackExampleAdviceClick,
+  trackVisit,
   updateEquipment,
   updateProgram,
 } from "./api";
@@ -220,6 +222,7 @@ function App() {
   const [exampleAdvice, setExampleAdvice] = useState("");
   const [exampleAdviceLoading, setExampleAdviceLoading] = useState(false);
   const [exampleAdviceError, setExampleAdviceError] = useState("");
+  const [visitId, setVisitId] = useState(null);
 
   useEffect(() => {
     const onPopState = () => {
@@ -231,6 +234,13 @@ function App() {
       window.removeEventListener("popstate", onPopState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAboutPage) return;
+    trackVisit().then((data) => {
+      if (data?.visitId) setVisitId(data.visitId);
+    }).catch(() => {});
+  }, [isAboutPage]);
 
   useEffect(() => {
     if (token) {
@@ -579,6 +589,7 @@ function App() {
   async function handleGetExampleAdvice() {
     setExampleAdviceLoading(true);
     setExampleAdviceError("");
+    trackExampleAdviceClick(visitId).catch(() => {});
     try {
       const result = await getExampleAdvice();
       setExampleAdvice(result.advice || "");

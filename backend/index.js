@@ -8,8 +8,10 @@ const programRoutes = require("./routes/programs");
 const workoutRoutes = require("./routes/workouts");
 const adviceRoutes = require("./routes/advice");
 const userRoutes = require("./routes/users");
+const trackingRoutes = require("./routes/tracking");
 
 const app = express();
+app.set("trust proxy", true);
 app.use(cors());
 app.use(express.json());
 
@@ -197,6 +199,15 @@ async function initDb() {
   await pool.query(
     "INSERT INTO example_advice_cache (id) VALUES (1) ON CONFLICT (id) DO NOTHING;"
   );
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_visits (
+      id SERIAL PRIMARY KEY,
+      ip_address VARCHAR(45) NOT NULL,
+      visited_at TIMESTAMP DEFAULT NOW(),
+      clicked_example_advice BOOLEAN NOT NULL DEFAULT FALSE
+    );
+  `);
 }
 
 async function initDailyAdviceResetJob() {
@@ -223,6 +234,7 @@ app.use("/api/programs", programRoutes);
 app.use("/api/workouts", workoutRoutes);
 app.use("/api/advice", adviceRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/tracking", trackingRoutes);
 
 initDb()
   .then(async () => {
