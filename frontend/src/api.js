@@ -139,6 +139,19 @@ export async function updateEquipment(token, equipment) {
   return parseResponse(response);
 }
 
+export async function updateBodyMetrics(token, { height_cm, weight_kg }) {
+  const response = await fetch(`${API_BASE_URL}/api/users/me/metrics`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ height_cm, weight_kg }),
+  });
+
+  return parseResponse(response);
+}
+
 export async function getExampleAdvice() {
   const response = await fetch(`${API_BASE_URL}/api/advice/example`);
   return parseResponse(response);

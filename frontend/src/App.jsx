@@ -14,6 +14,7 @@ import {
   softDeleteProgram,
   trackExampleAdviceClick,
   trackVisit,
+  updateBodyMetrics,
   updateEquipment,
   updateProgram,
 } from "./api";
@@ -223,6 +224,10 @@ function App() {
   const [exampleAdviceLoading, setExampleAdviceLoading] = useState(false);
   const [exampleAdviceError, setExampleAdviceError] = useState("");
   const [visitId, setVisitId] = useState(null);
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [metricsLoaded, setMetricsLoaded] = useState(false);
+  const [metricsSaving, setMetricsSaving] = useState(false);
 
   useEffect(() => {
     const onPopState = () => {
@@ -278,6 +283,9 @@ function App() {
         setUserRole(profile.role);
         localStorage.setItem("userRole", profile.role);
       }
+      setHeightCm(profile.height_cm != null ? String(profile.height_cm) : "");
+      setWeightKg(profile.weight_kg != null ? String(profile.weight_kg) : "");
+      setMetricsLoaded(true);
     } catch {
       // non-critical — silently ignore
     }
@@ -655,6 +663,25 @@ function App() {
       setMessage(`Equipment updated to "${newEquipment}".`);
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function handleSaveMetrics() {
+    setError("");
+    setMessage("");
+    setMetricsSaving(true);
+    try {
+      const payload = {};
+      if (heightCm.trim()) payload.height_cm = parseFloat(heightCm);
+      if (weightKg.trim()) payload.weight_kg = parseFloat(weightKg);
+      const updated = await updateBodyMetrics(token, payload);
+      setHeightCm(updated.height_cm != null ? String(updated.height_cm) : "");
+      setWeightKg(updated.weight_kg != null ? String(updated.weight_kg) : "");
+      setMessage("Body metrics updated.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setMetricsSaving(false);
     }
   }
 
@@ -1263,6 +1290,41 @@ function App() {
           {!isAdminPage && (
             <div className="card advice-card">
               <div className="advice-box">
+                <div className="body-metrics-section">
+                  <h3>Body Metrics</h3>
+                  {metricsLoaded && !heightCm && !weightKg && (
+                    <p className="metrics-hint">Add your height and weight for more personalized AI recommendations.</p>
+                  )}
+                  <div className="metrics-row">
+                    <label>
+                      <span className="field-hint">Height (cm)</span>
+                      <input
+                        type="number"
+                        min="50"
+                        max="300"
+                        step="0.1"
+                        placeholder="e.g. 175"
+                        value={heightCm}
+                        onChange={(e) => setHeightCm(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span className="field-hint">Weight (kg)</span>
+                      <input
+                        type="number"
+                        min="20"
+                        max="500"
+                        step="0.1"
+                        placeholder="e.g. 70"
+                        value={weightKg}
+                        onChange={(e) => setWeightKg(e.target.value)}
+                      />
+                    </label>
+                    <button type="button" onClick={handleSaveMetrics} disabled={metricsSaving}>
+                      {metricsSaving ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </div>
                 <div className="equipment-selector">
                   <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
                   <select

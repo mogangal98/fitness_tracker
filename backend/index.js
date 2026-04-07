@@ -51,6 +51,12 @@ async function initDb() {
     ADD COLUMN IF NOT EXISTS daily_advice_count INT NOT NULL DEFAULT 0;
   `);
 
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS height_cm NUMERIC(5,1),
+    ADD COLUMN IF NOT EXISTS weight_kg NUMERIC(5,1);
+  `);
+
   // Add CHECK constraint for role if it doesn't already exist
   await pool.query(`
     DO $$

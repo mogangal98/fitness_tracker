@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   last_advice_at TIMESTAMP,
   last_advice_text TEXT,
+  height_cm NUMERIC(5,1),
+  weight_kg NUMERIC(5,1),
   created_at TIMESTAMP DEFAULT NOW()
 );
 

@@ -166,7 +166,7 @@ async function getRagContext(programs) {
   return result.rows;
 }
 
-function buildPrompt(name, programs, ragChunks, equipment = "gym") {
+function buildPrompt(name, programs, ragChunks, equipment = "gym", bodyMetrics = {}) {
   const eqLabel = EQUIPMENT_LABELS[equipment] || equipment;
   const systemPrompt =
     process.env.ADVICE_SYSTEM_PROMPT ||
@@ -200,6 +200,18 @@ function buildPrompt(name, programs, ragChunks, equipment = "gym") {
     `MISSING / undertrained    : ${missingMuscles.length ? missingMuscles.join(", ") : "none — great balance!"}`,
   ].join("\n");
 
+  // Body metrics section
+  const metricsLines = [];
+  if (bodyMetrics.height_cm) metricsLines.push(`Height: ${bodyMetrics.height_cm} cm`);
+  if (bodyMetrics.weight_kg) metricsLines.push(`Weight: ${bodyMetrics.weight_kg} kg`);
+  if (bodyMetrics.height_cm && bodyMetrics.weight_kg) {
+    const h = bodyMetrics.height_cm / 100;
+    metricsLines.push(`BMI: ${(bodyMetrics.weight_kg / (h * h)).toFixed(1)}`);
+  }
+  const metricsSection = metricsLines.length
+    ? metricsLines.join(" | ")
+    : "Not provided";
+
   // we wont add any ocntext if there isno program or exercise data
   const ragText = ragChunks.length
     ? ragChunks.map((chunk, i) => `${i + 1}) ${chunk.title}: ${chunk.content}`).join("\n")
@@ -208,6 +220,7 @@ function buildPrompt(name, programs, ragChunks, equipment = "gym") {
   return (
     `SYSTEM:\n${systemPrompt}\n\n` +
     `USER EQUIPMENT: ${eqLabel}\n\n` +
+    `USER BODY METRICS: ${metricsSection}\n\n` +
     `USER PROGRAMS:\n${programLines.join("\n")}\n\n` +
     `MOVEMENT & MUSCLE ANALYSIS:\n${coverageSection}\n\n` +
     `COACHING KNOWLEDGE:\n${ragText}\n\n` +
@@ -223,14 +236,14 @@ function buildPrompt(name, programs, ragChunks, equipment = "gym") {
   );
 }
 
-async function fetchCloudAdvice(name, programs, ragChunks, equipment = "gym") {
+async function fetchCloudAdvice(name, programs, ragChunks, equipment = "gym", bodyMetrics = {}) {
 // fetch advice from Hugging Face Inference API using a conversational prompt with system instructions, user program context, and optional RAG knowledge chunks. We try multiple models in order of preference and fall back to a simple built-in advice generator if all fail or if no API token is configured.
   const token = process.env.HF_API_TOKEN;
   if (!token) {
     return buildFallbackAdvice(name, programs, equipment);
   }
 
-  const prompt = buildPrompt(name, programs, ragChunks, equipment);
+  const prompt = buildPrompt(name, programs, ragChunks, equipment, bodyMetrics);
   const eqLabel = EQUIPMENT_LABELS[equipment] || equipment;
   const modelsToTry = Array.from(
     new Set([
@@ -367,7 +380,7 @@ router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
     const requestedProgramId = Number(req.body?.programId) || null;
 
     const userResult = await pool.query(
-      "SELECT id, name, equipment, last_advice_at, last_advice_text, daily_advice_count FROM users WHERE id = $1",
+      "SELECT id, name, equipment, last_advice_at, last_advice_text, daily_advice_count, height_cm, weight_kg FROM users WHERE id = $1",
       [req.user.id]
     );
 
@@ -426,7 +439,8 @@ router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
     let fallbackReason = null;
     try {
       const ragChunks = await getRagContext(programsResult.rows); // rag context is optional. we will still generate advice without it, but it can improve relevance by providing the program, muscle coverage etc.
-      advice = await fetchCloudAdvice(user.name, programsResult.rows, ragChunks, user.equipment || "gym");
+      const bodyMetrics = { height_cm: user.height_cm, weight_kg: user.weight_kg };
+      advice = await fetchCloudAdvice(user.name, programsResult.rows, ragChunks, user.equipment || "gym", bodyMetrics);
       source = process.env.HF_API_TOKEN ? "cloud" : "fallback";
     } catch (cloudError) {
       console.warn("HF advice fallback:", cloudError.message);
