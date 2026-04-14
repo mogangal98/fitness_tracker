@@ -38,3 +38,13 @@ CREATE TABLE IF NOT EXISTS advice_knowledge_chunks (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS personal_records (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  exercise_name VARCHAR(180) NOT NULL,
+  weight_kg NUMERIC(6,1) NOT NULL,
+  reps INTEGER NOT NULL DEFAULT 1,
+  recorded_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, exercise_name)
+);

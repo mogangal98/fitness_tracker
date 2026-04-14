@@ -193,3 +193,41 @@ export async function bulkCreateWorkouts(token, payload) {
 
   return parseResponse(response);
 }
+
+export async function getStreaks(token) {
+  const response = await fetch(`${API_BASE_URL}/api/stats/streaks`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return parseResponse(response);
+}
+
+export async function getPersonalRecords(token) {
+  const response = await fetch(`${API_BASE_URL}/api/stats/personal-records`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return parseResponse(response);
+}
+
+export async function savePersonalRecord(token, { exercise_name, weight_kg, reps }) {
+  const response = await fetch(`${API_BASE_URL}/api/stats/personal-records`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ exercise_name, weight_kg, reps }),
+  });
+
+  return parseResponse(response);
+}
+
+export async function deletePersonalRecord(token, recordId) {
+  const response = await fetch(`${API_BASE_URL}/api/stats/personal-records/${recordId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return parseResponse(response);
+}

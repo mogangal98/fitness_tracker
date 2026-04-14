@@ -4,13 +4,17 @@ import {
   bulkCreateWorkouts,
   createProgram,
   deleteProgramWorkoutDate,
+  deletePersonalRecord,
   getDailyAdvice,
   getExampleAdvice,
+  getPersonalRecords,
   getProfile,
   getPrograms,
+  getStreaks,
   getWorkouts,
   loginUser,
   registerUser,
+  savePersonalRecord,
   softDeleteProgram,
   trackExampleAdviceClick,
   trackVisit,
@@ -228,6 +232,13 @@ function App() {
   const [weightKg, setWeightKg] = useState("");
   const [metricsLoaded, setMetricsLoaded] = useState(false);
   const [metricsSaving, setMetricsSaving] = useState(false);
+  const [streaks, setStreaks] = useState({ currentStreak: 0, longestStreak: 0, totalDays: 0 });
+  const [personalRecords, setPersonalRecords] = useState([]);
+  const [prExerciseName, setPrExerciseName] = useState("");
+  const [prWeight, setPrWeight] = useState("");
+  const [prReps, setPrReps] = useState("");
+  const [prSaving, setPrSaving] = useState(false);
+  const [prMessage, setPrMessage] = useState("");
 
   useEffect(() => {
     const onPopState = () => {
@@ -252,6 +263,8 @@ function App() {
       loadPrograms(token);
       loadWorkouts(token);
       loadProfile(token);
+      loadStreaks(token);
+      loadPersonalRecords(token);
     }
   }, [token]);
 

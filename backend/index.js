@@ -9,6 +9,7 @@ const workoutRoutes = require("./routes/workouts");
 const adviceRoutes = require("./routes/advice");
 const userRoutes = require("./routes/users");
 const trackingRoutes = require("./routes/tracking");
+const statsRoutes = require("./routes/stats");
 
 const app = express();
 app.set("trust proxy", true);
@@ -214,6 +215,18 @@ async function initDb() {
       clicked_example_advice BOOLEAN NOT NULL DEFAULT FALSE
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS personal_records (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      exercise_name VARCHAR(180) NOT NULL,
+      weight_kg NUMERIC(6,1) NOT NULL,
+      reps INTEGER NOT NULL DEFAULT 1,
+      recorded_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, exercise_name)
+    );
+  `);
 }
 
 async function initDailyAdviceResetJob() {
@@ -241,6 +254,7 @@ app.use("/api/workouts", workoutRoutes);
 app.use("/api/advice", adviceRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/tracking", trackingRoutes);
+app.use("/api/stats", statsRoutes);
 
 initDb()
   .then(async () => {
