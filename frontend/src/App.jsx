@@ -304,6 +304,61 @@ function App() {
     }
   }
 
+  async function loadStreaks(currentToken) {
+    try {
+      const data = await getStreaks(currentToken);
+      setStreaks(data);
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function loadPersonalRecords(currentToken) {
+    try {
+      const data = await getPersonalRecords(currentToken);
+      setPersonalRecords(data);
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function handleSavePersonalRecord(e) {
+    e.preventDefault();
+    setPrSaving(true);
+    setPrMessage("");
+    setError("");
+    try {
+      const result = await savePersonalRecord(token, {
+        exercise_name: prExerciseName.trim(),
+        weight_kg: parseFloat(prWeight),
+        reps: parseInt(prReps, 10) || 1,
+      });
+      if (result.isNewRecord) {
+        setPrMessage(`New PR for ${result.exercise_name}: ${result.weight_kg} kg × ${result.reps} reps!`);
+      } else {
+        setPrMessage(`${result.exercise_name} already has a higher record.`);
+      }
+      setPrExerciseName("");
+      setPrWeight("");
+      setPrReps("");
+      await loadPersonalRecords(token);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setPrSaving(false);
+    }
+  }
+
+  async function handleDeletePR(recordId) {
+    setError("");
+    try {
+      await deletePersonalRecord(token, recordId);
+      setPersonalRecords((prev) => prev.filter((r) => r.id !== recordId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   function normalizeProgramItems(items) {
     if (!Array.isArray(items)) {
       return [];
@@ -650,6 +705,7 @@ function App() {
       const updated = await addProgramWorkoutDate(token, programId, dateValue);
       setPrograms((prev) => prev.map((program) => (program.id === programId ? updated : program)));
       setMessage("Workout date recorded.");
+      loadStreaks(token);
     } catch (err) {
       setError(err.message);
     }
@@ -663,6 +719,7 @@ function App() {
       const updated = await deleteProgramWorkoutDate(token, programId, dateValue);
       setPrograms((prev) => prev.map((program) => (program.id === programId ? updated : program)));
       setMessage("Workout date removed.");
+      loadStreaks(token);
     } catch (err) {
       setError(err.message);
     }
@@ -1298,6 +1355,93 @@ function App() {
                 )}
               </div>
             </>
+          )}
+
+          {!isAdminPage && !isProgramDetailsPage && (
+            <div className="card streaks-card">
+              <h2>Workout Streaks</h2>
+              <div className="streaks-grid">
+                <div className="streak-item">
+                  <span className="streak-number">{streaks.currentStreak}</span>
+                  <span className="streak-label">{streaks.currentStreak === 1 ? "day" : "days"} current streak</span>
+                  {streaks.currentStreak >= 7 && <span className="streak-badge">🔥</span>}
+                  {streaks.currentStreak >= 30 && <span className="streak-badge">⚡</span>}
+                </div>
+                <div className="streak-item">
+                  <span className="streak-number">{streaks.longestStreak}</span>
+                  <span className="streak-label">{streaks.longestStreak === 1 ? "day" : "days"} longest streak</span>
+                  {streaks.longestStreak >= 14 && <span className="streak-badge">🏆</span>}
+                </div>
+                <div className="streak-item">
+                  <span className="streak-number">{streaks.totalDays}</span>
+                  <span className="streak-label">total workout {streaks.totalDays === 1 ? "day" : "days"}</span>
+                </div>
+              </div>
+              {streaks.totalDays === 0 && (
+                <p className="streaks-empty">Log your first workout to start building your streak!</p>
+              )}
+            </div>
+          )}
+
+          {!isAdminPage && !isProgramDetailsPage && (
+            <div className="card pr-card">
+              <h2>Personal Records</h2>
+              <form className="pr-form" onSubmit={handleSavePersonalRecord}>
+                <input
+                  type="text"
+                  placeholder="Exercise name"
+                  value={prExerciseName}
+                  onChange={(e) => setPrExerciseName(e.target.value)}
+                  required
+                />
+                <div className="pr-numbers">
+                  <label>
+                    <span className="field-hint">Weight (kg)</span>
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      placeholder="e.g. 100"
+                      value={prWeight}
+                      onChange={(e) => setPrWeight(e.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span className="field-hint">Reps</span>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="e.g. 5"
+                      value={prReps}
+                      onChange={(e) => setPrReps(e.target.value)}
+                    />
+                  </label>
+                  <button type="submit" disabled={prSaving}>
+                    {prSaving ? "Saving…" : "Log PR"}
+                  </button>
+                </div>
+              </form>
+              {prMessage && <p className="pr-feedback">{prMessage}</p>}
+              {personalRecords.length === 0 ? (
+                <p className="pr-empty">No personal records yet. Log your first PR above!</p>
+              ) : (
+                <ul className="pr-list">
+                  {personalRecords.map((pr) => (
+                    <li key={pr.id} className="pr-item">
+                      <div className="pr-item-info">
+                        <strong>{pr.exercise_name}</strong>
+                        <span>{pr.weight_kg} kg × {pr.reps} reps</span>
+                        <span className="pr-date">{new Date(pr.recorded_at).toLocaleDateString()}</span>
+                      </div>
+                      <button type="button" className="danger pr-delete" onClick={() => handleDeletePR(pr.id)}>
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
 
           {!isAdminPage && (
