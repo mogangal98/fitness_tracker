@@ -705,6 +705,161 @@ li {
   min-width: unset;
 }
 
+/* ── Body Metrics Log ─────────────────────────────────────── */
+.metrics-log-card h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.metrics-log-form {
+  margin-bottom: 0.75rem;
+}
+
+.metrics-log-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.metrics-log-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.metrics-log-inputs input {
+  width: 110px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.metrics-log-inputs input[type="text"] {
+  width: 160px;
+}
+
+.metrics-log-inputs button {
+  padding: 0.4rem 1rem;
+  font-size: 0.875rem;
+}
+
+.metrics-log-empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.metrics-log-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.metrics-log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+}
+
+.metrics-log-item-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+}
+
+.metrics-log-date {
+  color: #64748b;
+  font-size: 0.8rem;
+  min-width: 75px;
+}
+
+.metrics-log-note {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+/* ── Rest Timer ───────────────────────────────────────────── */
+.rest-timer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.rest-timer h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.rest-timer-display {
+  text-align: center;
+  padding: 0.75rem 0;
+}
+
+.rest-timer-display[data-active="true"] {
+  animation: pulse-timer 1s ease-in-out infinite;
+}
+
+.rest-timer-time {
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  color: var(--text-main);
+}
+
+.rest-timer-display[data-active="true"] .rest-timer-time {
+  color: #0f766e;
+}
+
+.rest-timer-presets {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.rest-timer-presets button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.825rem;
+  min-width: unset;
+}
+
+.rest-timer-custom {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.rest-timer-custom input {
+  width: 70px;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.rest-timer-custom button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.825rem;
+  min-width: unset;
+}
+
+@keyframes pulse-timer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 .equipment-selector {
   display: flex;
   align-items: center;

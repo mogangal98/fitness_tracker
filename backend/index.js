@@ -58,6 +58,11 @@ async function initDb() {
     ADD COLUMN IF NOT EXISTS weight_kg NUMERIC(5,1);
   `);
 
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS body_fat_pct NUMERIC(4,1);
+  `);
+
   // Add CHECK constraint for role if it doesn't already exist
   await pool.query(`
     DO $$
@@ -213,6 +218,17 @@ async function initDb() {
       ip_address VARCHAR(45) NOT NULL,
       visited_at TIMESTAMP DEFAULT NOW(),
       clicked_example_advice BOOLEAN NOT NULL DEFAULT FALSE
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS body_metrics_log (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      weight_kg NUMERIC(5,1),
+      body_fat_pct NUMERIC(4,1),
+      note VARCHAR(250),
+      logged_at TIMESTAMP DEFAULT NOW()
     );
   `);
 

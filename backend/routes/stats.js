@@ -179,4 +179,74 @@ router.delete("/personal-records/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// ─── Body Metrics Log ────────────────────────────────────────────────────────
+
+// GET /api/stats/body-metrics-log
+router.get("/body-metrics-log", authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, weight_kg, body_fat_pct, note, logged_at FROM body_metrics_log WHERE user_id = $1 ORDER BY logged_at DESC LIMIT 50",
+      [req.user.id]
+    );
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error("Get body metrics log error:", error.message);
+    return res.status(500).json({ message: "Server error while fetching body metrics log" });
+  }
+});
+
+// POST /api/stats/body-metrics-log
+router.post("/body-metrics-log", authMiddleware, async (req, res) => {
+  const { weight_kg, body_fat_pct, note } = req.body;
+
+  const w = weight_kg != null && weight_kg !== "" ? parseFloat(weight_kg) : null;
+  const bf = body_fat_pct != null && body_fat_pct !== "" ? parseFloat(body_fat_pct) : null;
+
+  if (w == null && bf == null) {
+    return res.status(400).json({ message: "Provide at least weight_kg or body_fat_pct" });
+  }
+  if (w != null && (Number.isNaN(w) || w < 20 || w > 500)) {
+    return res.status(400).json({ message: "weight_kg must be between 20 and 500" });
+  }
+  if (bf != null && (Number.isNaN(bf) || bf < 1 || bf > 70)) {
+    return res.status(400).json({ message: "body_fat_pct must be between 1 and 70" });
+  }
+
+  const safeNote = note ? String(note).trim().slice(0, 250) : null;
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO body_metrics_log (user_id, weight_kg, body_fat_pct, note) VALUES ($1, $2, $3, $4) RETURNING id, weight_kg, body_fat_pct, note, logged_at",
+      [req.user.id, w, bf, safeNote]
+    );
+
+    return res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Save body metrics log error:", error.message);
+    return res.status(500).json({ message: "Server error while saving body metrics entry" });
+  }
+});
+
+// DELETE /api/stats/body-metrics-log/:id
+router.delete("/body-metrics-log/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM body_metrics_log WHERE id = $1 AND user_id = $2 RETURNING id",
+      [id, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Entry not found" });
+    }
+
+    return res.json({ message: "Body metrics entry deleted" });
+  } catch (error) {
+    console.error("Delete body metrics log error:", error.message);
+    return res.status(500).json({ message: "Server error while deleting body metrics entry" });
+  }
+});
+
 module.exports = router;

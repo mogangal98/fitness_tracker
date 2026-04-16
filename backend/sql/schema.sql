@@ -39,6 +39,15 @@ CREATE TABLE IF NOT EXISTS advice_knowledge_chunks (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS body_metrics_log (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  weight_kg NUMERIC(5,1),
+  body_fat_pct NUMERIC(4,1),
+  note VARCHAR(250),
+  logged_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS personal_records (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

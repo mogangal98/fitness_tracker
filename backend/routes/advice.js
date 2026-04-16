@@ -204,6 +204,7 @@ function buildPrompt(name, programs, ragChunks, equipment = "gym", bodyMetrics =
   const metricsLines = [];
   if (bodyMetrics.height_cm) metricsLines.push(`Height: ${bodyMetrics.height_cm} cm`);
   if (bodyMetrics.weight_kg) metricsLines.push(`Weight: ${bodyMetrics.weight_kg} kg`);
+  if (bodyMetrics.body_fat_pct) metricsLines.push(`Body fat: ${bodyMetrics.body_fat_pct}%`);
   if (bodyMetrics.height_cm && bodyMetrics.weight_kg) {
     const h = bodyMetrics.height_cm / 100;
     metricsLines.push(`BMI: ${(bodyMetrics.weight_kg / (h * h)).toFixed(1)}`);
@@ -380,7 +381,7 @@ router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
     const requestedProgramId = Number(req.body?.programId) || null;
 
     const userResult = await pool.query(
-      "SELECT id, name, equipment, last_advice_at, last_advice_text, daily_advice_count, height_cm, weight_kg FROM users WHERE id = $1",
+      "SELECT id, name, equipment, last_advice_at, last_advice_text, daily_advice_count, height_cm, weight_kg, body_fat_pct FROM users WHERE id = $1",
       [req.user.id]
     );
 
@@ -439,7 +440,7 @@ router.post("/daily", authMiddleware, adviceLimiter, async (req, res) => {
     let fallbackReason = null;
     try {
       const ragChunks = await getRagContext(programsResult.rows); // rag context is optional. we will still generate advice without it, but it can improve relevance by providing the program, muscle coverage etc.
-      const bodyMetrics = { height_cm: user.height_cm, weight_kg: user.weight_kg };
+      const bodyMetrics = { height_cm: user.height_cm, weight_kg: user.weight_kg, body_fat_pct: user.body_fat_pct };
       advice = await fetchCloudAdvice(user.name, programsResult.rows, ragChunks, user.equipment || "gym", bodyMetrics);
       source = process.env.HF_API_TOKEN ? "cloud" : "fallback";
     } catch (cloudError) {

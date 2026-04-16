@@ -3,8 +3,10 @@ import {
   addProgramWorkoutDate,
   bulkCreateWorkouts,
   createProgram,
+  deleteBodyMetricsEntry,
   deleteProgramWorkoutDate,
   deletePersonalRecord,
+  getBodyMetricsLog,
   getDailyAdvice,
   getExampleAdvice,
   getPersonalRecords,
@@ -14,6 +16,7 @@ import {
   getWorkouts,
   loginUser,
   registerUser,
+  saveBodyMetricsEntry,
   savePersonalRecord,
   softDeleteProgram,
   trackExampleAdviceClick,
@@ -178,6 +181,84 @@ function AdviceRenderer({ text }) {
   return <div className="advice-body">{blocks}</div>;
 }
 
+function RestTimer() {
+  const PRESETS = [30, 60, 90, 120, 180];
+  const [seconds, setSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [customInput, setCustomInput] = useState("");
+
+  useEffect(() => {
+    if (!running || seconds <= 0) return;
+    const id = setInterval(() => {
+      setSeconds((prev) => {
+        if (prev <= 1) {
+          setRunning(false);
+          try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Nk4x/bnB8ioqDb3J8h4eDfXd9hYOAe3d7foCAfHp7fn+Afnt6fH5/f317e31+f398ent8fn9/fHt7fH5/f3x7e3x+f398e3t9fn9/fHt7fH5/f3x7e3x+f398fHt8fn9/fHt7fX5/f3x7e3x+f398e3t9fn9/fHt7fH5/").play(); } catch {}
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running, seconds]);
+
+  function startTimer(secs) {
+    setSeconds(secs);
+    setRunning(true);
+  }
+
+  function stopTimer() {
+    setRunning(false);
+    setSeconds(0);
+  }
+
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  const display = `${mins}:${secs.toString().padStart(2, "0")}`;
+
+  return (
+    <div className="rest-timer">
+      <h3>Rest Timer</h3>
+      <div className="rest-timer-display" data-active={running || seconds > 0}>
+        <span className="rest-timer-time">{display}</span>
+      </div>
+      <div className="rest-timer-presets">
+        {PRESETS.map((p) => (
+          <button key={p} type="button" onClick={() => startTimer(p)} disabled={running}>
+            {p >= 60 ? `${p / 60}m` : `${p}s`}
+          </button>
+        ))}
+      </div>
+      <div className="rest-timer-custom">
+        <input
+          type="number"
+          min="1"
+          max="600"
+          placeholder="sec"
+          value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)}
+          disabled={running}
+        />
+        <button
+          type="button"
+          disabled={running || !customInput}
+          onClick={() => {
+            const val = parseInt(customInput, 10);
+            if (val > 0 && val <= 600) startTimer(val);
+          }}
+        >
+          Start
+        </button>
+        {running && (
+          <button type="button" className="danger" onClick={stopTimer}>
+            Stop
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isAdminPage = currentPath === "/admin/workouts";
@@ -232,6 +313,12 @@ function App() {
   const [weightKg, setWeightKg] = useState("");
   const [metricsLoaded, setMetricsLoaded] = useState(false);
   const [metricsSaving, setMetricsSaving] = useState(false);
+  const [bodyFatPct, setBodyFatPct] = useState("");
+  const [metricsLog, setMetricsLog] = useState([]);
+  const [logWeight, setLogWeight] = useState("");
+  const [logBodyFat, setLogBodyFat] = useState("");
+  const [logNote, setLogNote] = useState("");
+  const [logSaving, setLogSaving] = useState(false);
   const [streaks, setStreaks] = useState({ currentStreak: 0, longestStreak: 0, totalDays: 0 });
   const [personalRecords, setPersonalRecords] = useState([]);
   const [prExerciseName, setPrExerciseName] = useState("");
@@ -265,6 +352,7 @@ function App() {
       loadProfile(token);
       loadStreaks(token);
       loadPersonalRecords(token);
+      loadMetricsLog(token);
     }
   }, [token]);
 
@@ -298,6 +386,7 @@ function App() {
       }
       setHeightCm(profile.height_cm != null ? String(profile.height_cm) : "");
       setWeightKg(profile.weight_kg != null ? String(profile.weight_kg) : "");
+      setBodyFatPct(profile.body_fat_pct != null ? String(profile.body_fat_pct) : "");
       setMetricsLoaded(true);
     } catch {
       // non-critical — silently ignore
@@ -354,6 +443,48 @@ function App() {
     try {
       await deletePersonalRecord(token, recordId);
       setPersonalRecords((prev) => prev.filter((r) => r.id !== recordId));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function loadMetricsLog(currentToken) {
+    try {
+      const data = await getBodyMetricsLog(currentToken);
+      setMetricsLog(data);
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function handleSaveMetricsEntry(e) {
+    e.preventDefault();
+    setLogSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      const entry = await saveBodyMetricsEntry(token, {
+        weight_kg: logWeight.trim() ? parseFloat(logWeight) : null,
+        body_fat_pct: logBodyFat.trim() ? parseFloat(logBodyFat) : null,
+        note: logNote.trim() || null,
+      });
+      setMetricsLog((prev) => [entry, ...prev]);
+      setLogWeight("");
+      setLogBodyFat("");
+      setLogNote("");
+      setMessage("Body metrics entry logged.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLogSaving(false);
+    }
+  }
+
+  async function handleDeleteMetricsEntry(entryId) {
+    setError("");
+    try {
+      await deleteBodyMetricsEntry(token, entryId);
+      setMetricsLog((prev) => prev.filter((e) => e.id !== entryId));
     } catch (err) {
       setError(err.message);
     }
@@ -744,9 +875,11 @@ function App() {
       const payload = {};
       if (heightCm.trim()) payload.height_cm = parseFloat(heightCm);
       if (weightKg.trim()) payload.weight_kg = parseFloat(weightKg);
+      if (bodyFatPct.trim()) payload.body_fat_pct = parseFloat(bodyFatPct);
       const updated = await updateBodyMetrics(token, payload);
       setHeightCm(updated.height_cm != null ? String(updated.height_cm) : "");
       setWeightKg(updated.weight_kg != null ? String(updated.weight_kg) : "");
+      setBodyFatPct(updated.body_fat_pct != null ? String(updated.body_fat_pct) : "");
       setMessage("Body metrics updated.");
     } catch (err) {
       setError(err.message);
@@ -1065,6 +1198,8 @@ function App() {
                       ))}
                     </ul>
                   </div>
+
+                  <RestTimer />
                 </>
               )}
             </div>
@@ -1444,13 +1579,79 @@ function App() {
             </div>
           )}
 
+          {!isAdminPage && !isProgramDetailsPage && (
+            <div className="card metrics-log-card">
+              <h2>Body Metrics Log</h2>
+              <form className="metrics-log-form" onSubmit={handleSaveMetricsEntry}>
+                <div className="metrics-log-inputs">
+                  <label>
+                    <span className="field-hint">Weight (kg)</span>
+                    <input
+                      type="number"
+                      min="20"
+                      max="500"
+                      step="0.1"
+                      placeholder="e.g. 75"
+                      value={logWeight}
+                      onChange={(e) => setLogWeight(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="field-hint">Body fat %</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="70"
+                      step="0.1"
+                      placeholder="e.g. 15"
+                      value={logBodyFat}
+                      onChange={(e) => setLogBodyFat(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    <span className="field-hint">Note</span>
+                    <input
+                      type="text"
+                      maxLength="250"
+                      placeholder="optional note"
+                      value={logNote}
+                      onChange={(e) => setLogNote(e.target.value)}
+                    />
+                  </label>
+                  <button type="submit" disabled={logSaving || (!logWeight && !logBodyFat)}>
+                    {logSaving ? "Logging…" : "Log entry"}
+                  </button>
+                </div>
+              </form>
+              {metricsLog.length === 0 ? (
+                <p className="metrics-log-empty">No entries yet. Start logging to track your progress over time!</p>
+              ) : (
+                <ul className="metrics-log-list">
+                  {metricsLog.map((entry) => (
+                    <li key={entry.id} className="metrics-log-item">
+                      <div className="metrics-log-item-info">
+                        <span className="metrics-log-date">{new Date(entry.logged_at).toLocaleDateString()}</span>
+                        {entry.weight_kg && <span><strong>{entry.weight_kg}</strong> kg</span>}
+                        {entry.body_fat_pct && <span><strong>{entry.body_fat_pct}</strong>% bf</span>}
+                        {entry.note && <span className="metrics-log-note">{entry.note}</span>}
+                      </div>
+                      <button type="button" className="danger pr-delete" onClick={() => handleDeleteMetricsEntry(entry.id)}>
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           {!isAdminPage && (
             <div className="card advice-card">
               <div className="advice-box">
                 <div className="body-metrics-section">
                   <h3>Body Metrics</h3>
-                  {metricsLoaded && !heightCm && !weightKg && (
-                    <p className="metrics-hint">Add your height and weight for more personalized AI recommendations.</p>
+                  {metricsLoaded && !heightCm && !weightKg && !bodyFatPct && (
+                    <p className="metrics-hint">Add your height, weight, and body fat % for more personalized AI recommendations.</p>
                   )}
                   <div className="metrics-row">
                     <label>
@@ -1475,6 +1676,18 @@ function App() {
                         placeholder="e.g. 70"
                         value={weightKg}
                         onChange={(e) => setWeightKg(e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      <span className="field-hint">Body fat %</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="70"
+                        step="0.1"
+                        placeholder="e.g. 15"
+                        value={bodyFatPct}
+                        onChange={(e) => setBodyFatPct(e.target.value)}
                       />
                     </label>
                     <button type="button" onClick={handleSaveMetrics} disabled={metricsSaving}>
