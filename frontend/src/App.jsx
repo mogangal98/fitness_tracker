@@ -184,6 +184,7 @@ function AdviceRenderer({ text }) {
 function RestTimer() {
   const PRESETS = [30, 60, 90, 120, 180];
   const [seconds, setSeconds] = useState(0);
+  const [totalSeconds, setTotalSeconds] = useState(0);
   const [running, setRunning] = useState(false);
   const [customInput, setCustomInput] = useState("");
 
@@ -204,6 +205,7 @@ function RestTimer() {
 
   function startTimer(secs) {
     setSeconds(secs);
+    setTotalSeconds(secs);
     setRunning(true);
   }
 
@@ -221,6 +223,12 @@ function RestTimer() {
       <h3>Rest Timer</h3>
       <div className="rest-timer-display" data-active={running || seconds > 0}>
         <span className="rest-timer-time">{display}</span>
+      </div>
+      <div className="rest-timer-progress">
+        <div
+          className="rest-timer-progress-bar"
+          style={{ width: totalSeconds > 0 ? `${(seconds / totalSeconds) * 100}%` : "0%" }}
+        />
       </div>
       <div className="rest-timer-presets">
         {PRESETS.map((p) => (
@@ -1002,6 +1010,29 @@ function App() {
             >
               I want to try it →
             </button>
+          </div>
+
+          <div className="about-tiles">
+            <div className="about-tile about-tile--blue">
+              <span className="about-tile-icon">🔥</span>
+              <span className="about-tile-value">Streaks</span>
+              <span className="about-tile-label">Stay consistent</span>
+            </div>
+            <div className="about-tile about-tile--teal">
+              <span className="about-tile-icon">🏆</span>
+              <span className="about-tile-value">PRs</span>
+              <span className="about-tile-label">Beat your best</span>
+            </div>
+            <div className="about-tile about-tile--purple">
+              <span className="about-tile-icon">🤖</span>
+              <span className="about-tile-value">AI</span>
+              <span className="about-tile-label">Daily coaching</span>
+            </div>
+            <div className="about-tile about-tile--amber">
+              <span className="about-tile-icon">📊</span>
+              <span className="about-tile-value">Metrics</span>
+              <span className="about-tile-label">Track progress</span>
+            </div>
           </div>
 
           <div className="info-example">
