@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   addProgramWorkoutDate,
   bulkCreateWorkouts,
+  changePassword,
   createProgram,
   deleteBodyMetricsEntry,
   deleteProgramWorkoutDate,
@@ -272,6 +273,7 @@ function App() {
   const isAdminPage = currentPath === "/admin/workouts";
   const isAboutPage = currentPath === "/about" || (currentPath === "/" && !localStorage.getItem("token"));
   const isLoginPage = currentPath === "/login";
+  const isAccountPage = currentPath === "/account";
   const detailsMatch = currentPath.match(/^\/programs\/(\d+)$/);
   const isProgramDetailsPage = Boolean(detailsMatch);
   const programDetailsId = detailsMatch ? Number(detailsMatch[1]) : null;
@@ -334,6 +336,12 @@ function App() {
   const [prReps, setPrReps] = useState("");
   const [prSaving, setPrSaving] = useState(false);
   const [prMessage, setPrMessage] = useState("");
+  const [pwOld, setPwOld] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMessage, setPwMessage] = useState("");
+  const [pwError, setPwError] = useState("");
 
   useEffect(() => {
     const onPopState = () => {
@@ -495,6 +503,32 @@ function App() {
       setMetricsLog((prev) => prev.filter((e) => e.id !== entryId));
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    setPwMessage("");
+    setPwError("");
+    if (pwNew !== pwConfirm) {
+      setPwError("New passwords do not match");
+      return;
+    }
+    if (pwNew.length < 6) {
+      setPwError("New password must be at least 6 characters");
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await changePassword(token, { oldPassword: pwOld, newPassword: pwNew });
+      setPwMessage("Password changed successfully!");
+      setPwOld("");
+      setPwNew("");
+      setPwConfirm("");
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setPwSaving(false);
     }
   }
 
@@ -940,10 +974,17 @@ function App() {
             <>
               <button
                 type="button"
-                className={`topbar-nav-btn${!isAdminPage && !isProgramDetailsPage && !isAboutPage ? " active" : ""}`}
+                className={`topbar-nav-btn${!isAdminPage && !isProgramDetailsPage && !isAboutPage && !isAccountPage ? " active" : ""}`}
                 onClick={() => navigateTo("/")}
               >
                 Dashboard
+              </button>
+              <button
+                type="button"
+                className={`topbar-nav-btn${isAccountPage ? " active" : ""}`}
+                onClick={() => navigateTo("/account")}
+              >
+                Account
               </button>
               {userRole === "admin" && (
                 <button
@@ -1079,6 +1120,55 @@ function App() {
             )}
           </div>
           </>
+        ) : isAccountPage && token ? (
+          <div className="card account-card">
+            <h2 className="account-title">Account</h2>
+            <p className="account-subtitle">Logged in as <strong>{userName}</strong></p>
+
+            <div className="account-section">
+              <h3 className="account-section-title">Change Password</h3>
+              <form className="account-pw-form" onSubmit={handleChangePassword}>
+                <label className="account-field-label">
+                  Current password
+                  <input
+                    type="password"
+                    placeholder="Enter current password"
+                    value={pwOld}
+                    onChange={(e) => setPwOld(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </label>
+                <label className="account-field-label">
+                  New password
+                  <input
+                    type="password"
+                    placeholder="At least 6 characters"
+                    value={pwNew}
+                    onChange={(e) => setPwNew(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                  />
+                </label>
+                <label className="account-field-label">
+                  Confirm new password
+                  <input
+                    type="password"
+                    placeholder="Repeat new password"
+                    value={pwConfirm}
+                    onChange={(e) => setPwConfirm(e.target.value)}
+                    required
+                    autoComplete="new-password"
+                  />
+                </label>
+                {pwMessage && <p className="account-success">{pwMessage}</p>}
+                {pwError && <p className="account-error">{pwError}</p>}
+                <button type="submit" disabled={pwSaving}>
+                  {pwSaving ? "Saving…" : "Change password"}
+                </button>
+              </form>
+            </div>
+          </div>
         ) : isLoginPage && !token ? (
           <div className="card auth-card">
             <h2>{isRegister ? "Register" : "Login"}</h2>

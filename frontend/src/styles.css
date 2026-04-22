@@ -1275,6 +1275,98 @@ p {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   ACCOUNT PAGE
+   ═══════════════════════════════════════════════════════════ */
+
+.account-card {
+  max-width: 440px;
+  margin: 2rem auto 0;
+}
+
+.account-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin: 0 0 0.25rem;
+  background: linear-gradient(120deg, #ffffff 0%, #a5b4fc 38%, #5eead4 65%, #ffffff 100%);
+  background-size: 260% 260%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease-in-out infinite;
+  display: inline-block;
+}
+
+.account-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0 0 1.25rem;
+}
+
+.account-subtitle strong {
+  color: var(--text-main);
+}
+
+.account-section {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 1rem;
+}
+
+.account-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.account-pw-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.account-field-label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.account-field-label input {
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.account-success {
+  color: #166534;
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: rgba(220, 252, 231, 0.9);
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  animation: slideNotify 0.25s ease;
+}
+
+.account-error {
+  color: #991b1b;
+  font-weight: 600;
+  font-size: 0.875rem;
+  background: rgba(254, 226, 226, 0.9);
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  animation: slideNotify 0.25s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
    ABOUT / LANDING PAGE
    ═══════════════════════════════════════════════════════════ */
 

@@ -261,3 +261,16 @@ export async function deleteBodyMetricsEntry(token, entryId) {
 
   return parseResponse(response);
 }
+
+export async function changePassword(token, { oldPassword, newPassword }) {
+  const response = await fetch(`${API_BASE_URL}/api/users/me/password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+
+  return parseResponse(response);
+}
