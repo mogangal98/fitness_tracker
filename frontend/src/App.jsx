@@ -268,12 +268,311 @@ function RestTimer() {
   );
 }
 
+// ── BMI gauge arc helper ────────────────────────────────────
+function BmiGauge({ bmi }) {
+  // Arc from -210deg to 30deg (240deg sweep) on a 100-unit circle
+  const R = 42;
+  const cx = 60, cy = 60;
+  const totalAngle = 240;
+  const startAngle = -210; // degrees, 0 = right
+
+  function polarToXY(angleDeg, r) {
+    const rad = (angleDeg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function describeArc(startDeg, endDeg) {
+    const s = polarToXY(startDeg, R);
+    const e = polarToXY(endDeg, R);
+    const large = endDeg - startDeg > 180 ? 1 : 0;
+    return `M ${s.x} ${s.y} A ${R} ${R} 0 ${large} 1 ${e.x} ${e.y}`;
+  }
+
+  // BMI zones: <18.5 underweight, 18.5-25 normal, 25-30 overweight, 30+ obese
+  // Map BMI 10–40 → 0–240 degrees of arc
+  const bmiMin = 10, bmiMax = 40;
+  const clampedBmi = Math.max(bmiMin, Math.min(bmiMax, bmi));
+  const fillAngle = ((clampedBmi - bmiMin) / (bmiMax - bmiMin)) * totalAngle;
+  const fillEndDeg = startAngle + fillAngle;
+
+  const zoneColor =
+    bmi < 18.5 ? "#60a5fa" :
+    bmi < 25   ? "#34d399" :
+    bmi < 30   ? "#fbbf24" : "#f87171";
+
+  const zones = [
+    { label: "Underweight", end: 18.5, color: "#60a5fa" },
+    { label: "Normal",      end: 25,   color: "#34d399" },
+    { label: "Overweight",  end: 30,   color: "#fbbf24" },
+    { label: "Obese",       end: 40,   color: "#f87171" },
+  ];
+
+  function zoneArc(fromBmi, toBmi, color) {
+    const fromDeg = startAngle + ((fromBmi - bmiMin) / (bmiMax - bmiMin)) * totalAngle;
+    const toDeg   = startAngle + ((toBmi  - bmiMin) / (bmiMax - bmiMin)) * totalAngle;
+    return <path key={color} d={describeArc(fromDeg, toDeg)} stroke={color} strokeWidth="8" fill="none" strokeLinecap="round" opacity="0.22" />;
+  }
+
+  return (
+    <svg viewBox="0 0 120 80" className="bmi-gauge-svg">
+      {/* background track arcs */}
+      {zoneArc(10, 18.5, "#60a5fa")}
+      {zoneArc(18.5, 25, "#34d399")}
+      {zoneArc(25, 30, "#fbbf24")}
+      {zoneArc(30, 40, "#f87171")}
+      {/* filled arc */}
+      <path
+        d={describeArc(startAngle, fillEndDeg)}
+        stroke={zoneColor}
+        strokeWidth="8"
+        fill="none"
+        strokeLinecap="round"
+        style={{ filter: `drop-shadow(0 0 6px ${zoneColor})` }}
+      />
+      {/* BMI value */}
+      <text x={cx} y={cy - 2} textAnchor="middle" fontSize="13" fontWeight="800" fill={zoneColor}>{bmi.toFixed(1)}</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="5.5" fill="rgba(241,245,249,0.65)">BMI</text>
+    </svg>
+  );
+}
+
+function FitnessTools() {
+  // ── BMI ──────────────────────────────────────────────────
+  const [bmiHeight, setBmiHeight] = useState("");
+  const [bmiWeight, setBmiWeight] = useState("");
+  const [bmiResult, setBmiResult] = useState(null);
+
+  function calcBmi(e) {
+    e.preventDefault();
+    const h = parseFloat(bmiHeight) / 100;
+    const w = parseFloat(bmiWeight);
+    if (!h || !w || h <= 0 || w <= 0) return;
+    const bmi = w / (h * h);
+    const label =
+      bmi < 18.5 ? "Underweight" :
+      bmi < 25   ? "Normal weight" :
+      bmi < 30   ? "Overweight" : "Obese";
+    const color =
+      bmi < 18.5 ? "#60a5fa" :
+      bmi < 25   ? "#34d399" :
+      bmi < 30   ? "#fbbf24" : "#f87171";
+    setBmiResult({ bmi, label, color });
+  }
+
+  // ── TDEE ─────────────────────────────────────────────────
+  const [tdeeHeight, setTdeeHeight] = useState("");
+  const [tdeeWeight, setTdeeWeight] = useState("");
+  const [tdeeAge, setTdeeAge]       = useState("");
+  const [tdeeSex, setTdeeSex]       = useState("male");
+  const [tdeeActivity, setTdeeActivity] = useState("1.55");
+  const [tdeeResult, setTdeeResult] = useState(null);
+
+  const activityLabels = {
+    "1.2":  "Sedentary (desk job, no exercise)",
+    "1.375":"Lightly active (1–3×/week)",
+    "1.55": "Moderately active (3–5×/week)",
+    "1.725":"Very active (6–7×/week)",
+    "1.9":  "Extra active (physical job + training)",
+  };
+
+  function calcTdee(e) {
+    e.preventDefault();
+    const h = parseFloat(tdeeHeight);
+    const w = parseFloat(tdeeWeight);
+    const a = parseFloat(tdeeAge);
+    const act = parseFloat(tdeeActivity);
+    if (!h || !w || !a) return;
+    // Mifflin-St Jeor BMR
+    const bmr = tdeeSex === "male"
+      ? 10 * w + 6.25 * h - 5 * a + 5
+      : 10 * w + 6.25 * h - 5 * a - 161;
+    const tdee = Math.round(bmr * act);
+    setTdeeResult({
+      tdee,
+      cut: Math.round(tdee - 500),
+      bulk: Math.round(tdee + 300),
+    });
+  }
+
+  // ── 1RM ──────────────────────────────────────────────────
+  const [ormWeight, setOrmWeight] = useState("");
+  const [ormReps, setOrmReps]     = useState("");
+  const [ormResult, setOrmResult] = useState(null);
+
+  function calcOrm(e) {
+    e.preventDefault();
+    const w = parseFloat(ormWeight);
+    const r = parseInt(ormReps, 10);
+    if (!w || !r || r < 1) return;
+    if (r === 1) { setOrmResult({ orm: w, pcts: pctTable(w) }); return; }
+    // Epley formula
+    const orm = w * (1 + r / 30);
+    setOrmResult({ orm: Math.round(orm * 10) / 10, pcts: pctTable(orm) });
+  }
+
+  function pctTable(orm) {
+    return [100, 95, 90, 85, 80, 75, 70].map((pct) => ({
+      pct,
+      kg: Math.round((orm * pct) / 100 * 10) / 10,
+    }));
+  }
+
+  return (
+    <div className="tools-page">
+      <h1 className="tools-title">Fitness Calculators</h1>
+      <p className="tools-subtitle">Free tools — no account needed.</p>
+
+      <div className="tools-grid">
+
+        {/* ── BMI Calculator ─────────────────────────── */}
+        <div className="tool-card">
+          <div className="tool-card-header tool-card-header--blue">
+            <span className="tool-card-icon">⚖️</span>
+            <h2 className="tool-card-title">BMI Calculator</h2>
+          </div>
+          <p className="tool-card-desc">Body Mass Index — a quick indicator of healthy weight range.</p>
+          <form className="tool-form" onSubmit={calcBmi}>
+            <label className="tool-label">
+              Height (cm)
+              <input type="number" min="50" max="250" placeholder="e.g. 175" value={bmiHeight} onChange={e => setBmiHeight(e.target.value)} required />
+            </label>
+            <label className="tool-label">
+              Weight (kg)
+              <input type="number" min="20" max="300" placeholder="e.g. 75" value={bmiWeight} onChange={e => setBmiWeight(e.target.value)} required />
+            </label>
+            <button type="submit">Calculate BMI</button>
+          </form>
+          {bmiResult && (
+            <div className="tool-result tool-result--gauge">
+              <BmiGauge bmi={bmiResult.bmi} />
+              <p className="tool-result-label" style={{ color: bmiResult.color }}>{bmiResult.label}</p>
+              <div className="bmi-zones">
+                <span style={{ color: "#60a5fa" }}>◆ &lt;18.5 Underweight</span>
+                <span style={{ color: "#34d399" }}>◆ 18.5–24.9 Normal</span>
+                <span style={{ color: "#fbbf24" }}>◆ 25–29.9 Overweight</span>
+                <span style={{ color: "#f87171" }}>◆ 30+ Obese</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── TDEE Calculator ────────────────────────── */}
+        <div className="tool-card">
+          <div className="tool-card-header tool-card-header--teal">
+            <span className="tool-card-icon">🔥</span>
+            <h2 className="tool-card-title">Daily Calories (TDEE)</h2>
+          </div>
+          <p className="tool-card-desc">Total Daily Energy Expenditure — how many calories you burn per day.</p>
+          <form className="tool-form" onSubmit={calcTdee}>
+            <div className="tool-row">
+              <label className="tool-label">
+                Height (cm)
+                <input type="number" min="50" max="250" placeholder="175" value={tdeeHeight} onChange={e => setTdeeHeight(e.target.value)} required />
+              </label>
+              <label className="tool-label">
+                Weight (kg)
+                <input type="number" min="20" max="300" placeholder="75" value={tdeeWeight} onChange={e => setTdeeWeight(e.target.value)} required />
+              </label>
+            </div>
+            <div className="tool-row">
+              <label className="tool-label">
+                Age
+                <input type="number" min="10" max="100" placeholder="25" value={tdeeAge} onChange={e => setTdeeAge(e.target.value)} required />
+              </label>
+              <label className="tool-label">
+                Sex
+                <select value={tdeeSex} onChange={e => setTdeeSex(e.target.value)}>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </label>
+            </div>
+            <label className="tool-label">
+              Activity level
+              <select value={tdeeActivity} onChange={e => setTdeeActivity(e.target.value)}>
+                {Object.entries(activityLabels).map(([val, lab]) => (
+                  <option key={val} value={val}>{lab}</option>
+                ))}
+              </select>
+            </label>
+            <button type="submit">Calculate TDEE</button>
+          </form>
+          {tdeeResult && (
+            <div className="tool-result tool-result--tdee">
+              <div className="tdee-row tdee-main">
+                <span className="tdee-label">Maintenance</span>
+                <span className="tdee-value" style={{ color: "#5eead4" }}>{tdeeResult.tdee} kcal</span>
+              </div>
+              <div className="tdee-row">
+                <span className="tdee-label">🔻 Cut (−500 kcal)</span>
+                <span className="tdee-value" style={{ color: "#60a5fa" }}>{tdeeResult.cut} kcal</span>
+              </div>
+              <div className="tdee-row">
+                <span className="tdee-label">🔺 Bulk (+300 kcal)</span>
+                <span className="tdee-value" style={{ color: "#fbbf24" }}>{tdeeResult.bulk} kcal</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── 1RM Calculator ─────────────────────────── */}
+        <div className="tool-card">
+          <div className="tool-card-header tool-card-header--purple">
+            <span className="tool-card-icon">🏆</span>
+            <h2 className="tool-card-title">1-Rep Max (1RM)</h2>
+          </div>
+          <p className="tool-card-desc">Estimate your one-rep max from any working set using the Epley formula.</p>
+          <form className="tool-form" onSubmit={calcOrm}>
+            <label className="tool-label">
+              Weight lifted (kg)
+              <input type="number" min="1" max="600" placeholder="e.g. 100" value={ormWeight} onChange={e => setOrmWeight(e.target.value)} required />
+            </label>
+            <label className="tool-label">
+              Reps performed
+              <input type="number" min="1" max="30" placeholder="e.g. 5" value={ormReps} onChange={e => setOrmReps(e.target.value)} required />
+            </label>
+            <button type="submit">Estimate 1RM</button>
+          </form>
+          {ormResult && (
+            <div className="tool-result tool-result--orm">
+              <p className="orm-max">Estimated 1RM: <strong style={{ color: "#c4b5fd" }}>{ormResult.orm} kg</strong></p>
+              <table className="orm-table">
+                <thead>
+                  <tr><th>%</th><th>kg</th><th>Use for</th></tr>
+                </thead>
+                <tbody>
+                  {ormResult.pcts.map(({ pct, kg }) => (
+                    <tr key={pct}>
+                      <td>{pct}%</td>
+                      <td style={{ color: "#c4b5fd", fontWeight: 700 }}>{kg}</td>
+                      <td className="orm-use">
+                        {pct === 100 ? "1RM" :
+                         pct === 95  ? "1–2 reps" :
+                         pct === 90  ? "2–3 reps" :
+                         pct === 85  ? "3–5 reps" :
+                         pct === 80  ? "5–6 reps" :
+                         pct === 75  ? "6–8 reps" : "8–10 reps"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isAdminPage = currentPath === "/admin/workouts";
   const isAboutPage = currentPath === "/about" || (currentPath === "/" && !localStorage.getItem("token"));
   const isLoginPage = currentPath === "/login";
   const isAccountPage = currentPath === "/account";
+  const isToolsPage = currentPath === "/tools";
   const detailsMatch = currentPath.match(/^\/programs\/(\d+)$/);
   const isProgramDetailsPage = Boolean(detailsMatch);
   const programDetailsId = detailsMatch ? Number(detailsMatch[1]) : null;
@@ -1007,6 +1306,13 @@ function App() {
           )}
           <button
             type="button"
+            className={`topbar-nav-btn${isToolsPage ? " active" : ""}`}
+            onClick={() => navigateTo("/tools")}
+          >
+            Tools
+          </button>
+          <button
+            type="button"
             className={`topbar-nav-btn${isAboutPage ? " active" : ""}`}
             onClick={() => navigateTo("/about")}
           >
@@ -1025,7 +1331,9 @@ function App() {
       </header>
 
       <div className="container">
-        {isAboutPage ? (
+        {isToolsPage ? (
+          <FitnessTools />
+        ) : isAboutPage ? (
           <>
           <div className="card info-card">
             <p className="info-hero">💪</p>
