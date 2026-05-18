@@ -28,21 +28,12 @@ import {
   updateProgram,
 } from "./api";
 
-function SearchableWorkoutDropdown({
-  workouts,
-  searchQuery,
-  setSearchQuery,
-  onSelect,
-  triggerLabel,
-}) {
+function SearchableWorkoutDropdown({ workouts, searchQuery, setSearchQuery, onSelect, triggerLabel }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const filteredWorkouts = workouts.filter((workout) => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) {
-      return true;
-    }
-
+    if (!query) return true;
     return (
       workout.name.toLowerCase().includes(query) ||
       (workout.muscle_group || "").toLowerCase().includes(query)
@@ -51,14 +42,9 @@ function SearchableWorkoutDropdown({
 
   return (
     <div className="custom-dropdown">
-      <button
-        type="button"
-        className="dropdown-trigger"
-        onClick={() => setIsOpen((prev) => !prev)}
-      >
+      <button type="button" className="dropdown-trigger" onClick={() => setIsOpen((prev) => !prev)}>
         {triggerLabel}
       </button>
-
       {isOpen && (
         <div className="dropdown-menu">
           <input
@@ -67,7 +53,6 @@ function SearchableWorkoutDropdown({
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
-
           <div className="dropdown-options">
             {filteredWorkouts.length === 0 ? (
               <p>No workouts found.</p>
@@ -77,14 +62,9 @@ function SearchableWorkoutDropdown({
                   key={workout.id}
                   type="button"
                   className="dropdown-option"
-                  onClick={() => {
-                    onSelect(workout.id);
-                    setIsOpen(false);
-                    setSearchQuery("");
-                  }}
+                  onClick={() => { onSelect(workout.id); setIsOpen(false); setSearchQuery(""); }}
                 >
-                  {workout.name}
-                  {workout.muscle_group ? ` (${workout.muscle_group})` : ""}
+                  {workout.name}{workout.muscle_group ? ` (${workout.muscle_group})` : ""}
                 </button>
               ))
             )}
@@ -95,11 +75,9 @@ function SearchableWorkoutDropdown({
   );
 }
 
-// Renders LLM markdown-style text into structured JSX
 function AdviceRenderer({ text }) {
   if (!text) return null;
 
-  // Inline: replace **bold** with <strong>
   function renderInline(line) {
     const parts = line.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) =>
@@ -117,9 +95,7 @@ function AdviceRenderer({ text }) {
     if (bulletBuffer.length === 0) return;
     blocks.push(
       <ul key={`ul-${blocks.length}`} className="advice-list">
-        {bulletBuffer.map((b, i) => (
-          <li key={i}>{renderInline(b)}</li>
-        ))}
+        {bulletBuffer.map((b, i) => <li key={i}>{renderInline(b)}</li>)}
       </ul>
     );
     bulletBuffer = [];
@@ -128,58 +104,22 @@ function AdviceRenderer({ text }) {
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
     const trimmed = raw.trim();
-
-    if (!trimmed) {
-      flushBullets();
-      continue;
-    }
-
-    // Bullet line
-    if (/^[-•*]\s+/.test(trimmed)) {
-      bulletBuffer.push(trimmed.replace(/^[-•*]\s+/, ""));
-      continue;
-    }
-
-    // Numbered bullet  e.g. "1. ..."
-    if (/^\d+\.\s+/.test(trimmed)) {
-      bulletBuffer.push(trimmed.replace(/^\d+\.\s+/, ""));
-      continue;
-    }
-
+    if (!trimmed) { flushBullets(); continue; }
+    if (/^[-•*]\s+/.test(trimmed)) { bulletBuffer.push(trimmed.replace(/^[-•*]\s+/, "")); continue; }
+    if (/^\d+\.\s+/.test(trimmed)) { bulletBuffer.push(trimmed.replace(/^\d+\.\s+/, "")); continue; }
     flushBullets();
-
-    // Safety / Note line — special call-out
     if (/^(safety|⚠|note)[:\s]/i.test(trimmed) || /^\*\*(safety|note)/i.test(trimmed)) {
       const clean = trimmed.replace(/^\*\*(safety|note)[^*]*\*\*:?\s*/i, "").replace(/^(safety|note)[:\s]*/i, "");
-      blocks.push(
-        <div key={`safety-${i}`} className="advice-safety">
-          <span className="advice-safety-icon">⚠</span>
-          <span>{renderInline(clean || trimmed)}</span>
-        </div>
-      );
+      blocks.push(<div key={`safety-${i}`} className="advice-safety"><span className="advice-safety-icon">⚠</span><span>{renderInline(clean || trimmed)}</span></div>);
       continue;
     }
-
-    // Markdown heading: ### or ## or # OR bold-only line like **Title**
     const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
     const boldOnlyLine = trimmed.match(/^\*\*(.+)\*\*:?$/);
-    if (headingMatch) {
-      flushBullets();
-      blocks.push(<h4 key={`h-${i}`} className="advice-heading">{renderInline(headingMatch[1])}</h4>);
-      continue;
-    }
-    if (boldOnlyLine) {
-      flushBullets();
-      blocks.push(<h4 key={`h-${i}`} className="advice-heading">{boldOnlyLine[1]}</h4>);
-      continue;
-    }
-
-    // Regular paragraph
+    if (headingMatch) { blocks.push(<h4 key={`h-${i}`} className="advice-heading">{renderInline(headingMatch[1])}</h4>); continue; }
+    if (boldOnlyLine) { blocks.push(<h4 key={`h-${i}`} className="advice-heading">{boldOnlyLine[1]}</h4>); continue; }
     blocks.push(<p key={`p-${i}`} className="advice-para">{renderInline(trimmed)}</p>);
   }
-
   flushBullets();
-
   return <div className="advice-body">{blocks}</div>;
 }
 
@@ -196,7 +136,7 @@ function RestTimer() {
       setSeconds((prev) => {
         if (prev <= 1) {
           setRunning(false);
-          try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Nk4x/bnB8ioqDb3J8h4eDfXd9hYOAe3d7foCAfHp7fn+Afnt6fH5/f317e31+f398ent8fn9/fHt7fH5/f3x7e3x+f398e3t9fn9/fHt7fH5/f3x7e3x+f398fHt8fn9/fHt7fX5/f3x7e3x+f398e3t9fn9/fHt7fH5/").play(); } catch {}
+          try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2Nk4x/bnB8ioqDb3J8h4eDfXd9hYOAe3d7foCAfHp7fn+Afnt6fH5/f397e31+f398ent8fn9/fHt7fH5/f3x7e3x+f398e3t9fn9/fHt7fH5/f3x7e3x+f398fHt8fn9/fHt7fX5/f3x7e3x+f398e3t9fn9/fHt7fH5/").play(); } catch {}
           return 0;
         }
         return prev - 1;
@@ -205,16 +145,8 @@ function RestTimer() {
     return () => clearInterval(id);
   }, [running, seconds]);
 
-  function startTimer(secs) {
-    setSeconds(secs);
-    setTotalSeconds(secs);
-    setRunning(true);
-  }
-
-  function stopTimer() {
-    setRunning(false);
-    setSeconds(0);
-  }
+  function startTimer(secs) { setSeconds(secs); setTotalSeconds(secs); setRunning(true); }
+  function stopTimer() { setRunning(false); setSeconds(0); }
 
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -227,10 +159,7 @@ function RestTimer() {
         <span className="rest-timer-time">{display}</span>
       </div>
       <div className="rest-timer-progress">
-        <div
-          className="rest-timer-progress-bar"
-          style={{ width: totalSeconds > 0 ? `${(seconds / totalSeconds) * 100}%` : "0%" }}
-        />
+        <div className="rest-timer-progress-bar" style={{ width: totalSeconds > 0 ? `${(seconds / totalSeconds) * 100}%` : "0%" }} />
       </div>
       <div className="rest-timer-presets">
         {PRESETS.map((p) => (
@@ -240,42 +169,23 @@ function RestTimer() {
         ))}
       </div>
       <div className="rest-timer-custom">
-        <input
-          type="number"
-          min="1"
-          max="600"
-          placeholder="sec"
-          value={customInput}
-          onChange={(e) => setCustomInput(e.target.value)}
-          disabled={running}
-        />
-        <button
-          type="button"
-          disabled={running || !customInput}
-          onClick={() => {
-            const val = parseInt(customInput, 10);
-            if (val > 0 && val <= 600) startTimer(val);
-          }}
-        >
+        <input type="number" min="1" max="600" placeholder="sec" value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)} disabled={running} />
+        <button type="button" disabled={running || !customInput}
+          onClick={() => { const val = parseInt(customInput, 10); if (val > 0 && val <= 600) startTimer(val); }}>
           Start
         </button>
-        {running && (
-          <button type="button" className="danger" onClick={stopTimer}>
-            Stop
-          </button>
-        )}
+        {running && <button type="button" className="danger" onClick={stopTimer}>Stop</button>}
       </div>
     </div>
   );
 }
 
-// ── BMI gauge arc helper ────────────────────────────────────
 function BmiGauge({ bmi }) {
-  // Arc from -210deg to 30deg (240deg sweep) on a 100-unit circle
   const R = 42;
   const cx = 60, cy = 60;
   const totalAngle = 240;
-  const startAngle = -210; // degrees, 0 = right
+  const startAngle = -210;
 
   function polarToXY(angleDeg, r) {
     const rad = (angleDeg * Math.PI) / 180;
@@ -289,48 +199,26 @@ function BmiGauge({ bmi }) {
     return `M ${s.x} ${s.y} A ${R} ${R} 0 ${large} 1 ${e.x} ${e.y}`;
   }
 
-  // BMI zones: <18.5 underweight, 18.5-25 normal, 25-30 overweight, 30+ obese
-  // Map BMI 10–40 → 0–240 degrees of arc
   const bmiMin = 10, bmiMax = 40;
   const clampedBmi = Math.max(bmiMin, Math.min(bmiMax, bmi));
   const fillAngle = ((clampedBmi - bmiMin) / (bmiMax - bmiMin)) * totalAngle;
   const fillEndDeg = startAngle + fillAngle;
 
-  const zoneColor =
-    bmi < 18.5 ? "#60a5fa" :
-    bmi < 25   ? "#34d399" :
-    bmi < 30   ? "#fbbf24" : "#f87171";
-
-  const zones = [
-    { label: "Underweight", end: 18.5, color: "#60a5fa" },
-    { label: "Normal",      end: 25,   color: "#34d399" },
-    { label: "Overweight",  end: 30,   color: "#fbbf24" },
-    { label: "Obese",       end: 40,   color: "#f87171" },
-  ];
+  const zoneColor = bmi < 18.5 ? "#60a5fa" : bmi < 25 ? "#34d399" : bmi < 30 ? "#fbbf24" : "#f87171";
 
   function zoneArc(fromBmi, toBmi, color) {
     const fromDeg = startAngle + ((fromBmi - bmiMin) / (bmiMax - bmiMin)) * totalAngle;
-    const toDeg   = startAngle + ((toBmi  - bmiMin) / (bmiMax - bmiMin)) * totalAngle;
+    const toDeg = startAngle + ((toBmi - bmiMin) / (bmiMax - bmiMin)) * totalAngle;
     return <path key={color} d={describeArc(fromDeg, toDeg)} stroke={color} strokeWidth="8" fill="none" strokeLinecap="round" opacity="0.22" />;
   }
 
   return (
     <svg viewBox="0 0 120 80" className="bmi-gauge-svg">
-      {/* background track arcs */}
       {zoneArc(10, 18.5, "#60a5fa")}
       {zoneArc(18.5, 25, "#34d399")}
       {zoneArc(25, 30, "#fbbf24")}
       {zoneArc(30, 40, "#f87171")}
-      {/* filled arc */}
-      <path
-        d={describeArc(startAngle, fillEndDeg)}
-        stroke={zoneColor}
-        strokeWidth="8"
-        fill="none"
-        strokeLinecap="round"
-        style={{ filter: `drop-shadow(0 0 6px ${zoneColor})` }}
-      />
-      {/* BMI value */}
+      <path d={describeArc(startAngle, fillEndDeg)} stroke={zoneColor} strokeWidth="8" fill="none" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 6px ${zoneColor})` }} />
       <text x={cx} y={cy - 2} textAnchor="middle" fontSize="13" fontWeight="800" fill={zoneColor}>{bmi.toFixed(1)}</text>
       <text x={cx} y={cy + 10} textAnchor="middle" fontSize="5.5" fill="rgba(241,245,249,0.65)">BMI</text>
     </svg>
@@ -339,9 +227,7 @@ function BmiGauge({ bmi }) {
 
 function WeightChart({ data }) {
   const sorted = useMemo(() =>
-    [...data]
-      .filter((e) => e.weight_kg != null)
-      .sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at)),
+    [...data].filter((e) => e.weight_kg != null).sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at)),
     [data]
   );
 
@@ -360,7 +246,6 @@ function WeightChart({ data }) {
   const pts = sorted.map((e, i) => ({
     x: padL + (i / (sorted.length - 1)) * innerW,
     y: padT + innerH - ((parseFloat(e.weight_kg) - minW) / range) * innerH,
-    weight: parseFloat(e.weight_kg),
     date: new Date(e.logged_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
   }));
 
@@ -383,9 +268,7 @@ function WeightChart({ data }) {
         <text x={padL - 4} y={padT + innerH + 4} textAnchor="end" fontSize="8" fill="currentColor" opacity="0.5">{minW}</text>
         <path d={areaPath} fill="url(#wGrad)" />
         <path d={linePath} stroke="#4f72f5" strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
-        {pts.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="3" fill="#4f72f5" />
-        ))}
+        {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r="3" fill="#4f72f5" />)}
         <text x={pts[0].x} y={H - 3} textAnchor="middle" fontSize="7" fill="currentColor" opacity="0.5">{pts[0].date}</text>
         <text x={pts[pts.length - 1].x} y={H - 3} textAnchor="middle" fontSize="7" fill="currentColor" opacity="0.5">{pts[pts.length - 1].date}</text>
       </svg>
@@ -414,7 +297,6 @@ function WorkoutCalendar({ programs }) {
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthName = viewDate.toLocaleString("default", { month: "long", year: "numeric" });
-
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const cells = [];
@@ -438,11 +320,9 @@ function WorkoutCalendar({ programs }) {
           const workouts = workoutDayMap[dateStr];
           const isToday = dateStr === todayStr;
           return (
-            <div
-              key={dateStr}
+            <div key={dateStr}
               className={`cal-cell${isToday ? " cal-cell--today" : ""}${workouts ? " cal-cell--worked" : ""}`}
-              title={workouts ? workouts.join(", ") : undefined}
-            >
+              title={workouts ? workouts.join(", ") : undefined}>
               <span>{day}</span>
               {workouts && <span className="cal-dot" />}
             </div>
@@ -455,7 +335,6 @@ function WorkoutCalendar({ programs }) {
 }
 
 function FitnessTools() {
-  // ── BMI ──────────────────────────────────────────────────
   const [bmiHeight, setBmiHeight] = useState("");
   const [bmiWeight, setBmiWeight] = useState("");
   const [bmiResult, setBmiResult] = useState(null);
@@ -466,31 +345,24 @@ function FitnessTools() {
     const w = parseFloat(bmiWeight);
     if (!h || !w || h <= 0 || w <= 0) return;
     const bmi = w / (h * h);
-    const label =
-      bmi < 18.5 ? "Underweight" :
-      bmi < 25   ? "Normal weight" :
-      bmi < 30   ? "Overweight" : "Obese";
-    const color =
-      bmi < 18.5 ? "#60a5fa" :
-      bmi < 25   ? "#34d399" :
-      bmi < 30   ? "#fbbf24" : "#f87171";
+    const label = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal weight" : bmi < 30 ? "Overweight" : "Obese";
+    const color = bmi < 18.5 ? "#60a5fa" : bmi < 25 ? "#34d399" : bmi < 30 ? "#fbbf24" : "#f87171";
     setBmiResult({ bmi, label, color });
   }
 
-  // ── TDEE ─────────────────────────────────────────────────
   const [tdeeHeight, setTdeeHeight] = useState("");
   const [tdeeWeight, setTdeeWeight] = useState("");
-  const [tdeeAge, setTdeeAge]       = useState("");
-  const [tdeeSex, setTdeeSex]       = useState("male");
+  const [tdeeAge, setTdeeAge] = useState("");
+  const [tdeeSex, setTdeeSex] = useState("male");
   const [tdeeActivity, setTdeeActivity] = useState("1.55");
   const [tdeeResult, setTdeeResult] = useState(null);
 
   const activityLabels = {
-    "1.2":  "Sedentary (desk job, no exercise)",
-    "1.375":"Lightly active (1–3×/week)",
+    "1.2": "Sedentary (desk job, no exercise)",
+    "1.375": "Lightly active (1–3×/week)",
     "1.55": "Moderately active (3–5×/week)",
-    "1.725":"Very active (6–7×/week)",
-    "1.9":  "Extra active (physical job + training)",
+    "1.725": "Very active (6–7×/week)",
+    "1.9": "Extra active (physical job + training)",
   };
 
   function calcTdee(e) {
@@ -500,21 +372,13 @@ function FitnessTools() {
     const a = parseFloat(tdeeAge);
     const act = parseFloat(tdeeActivity);
     if (!h || !w || !a) return;
-    // Mifflin-St Jeor BMR
-    const bmr = tdeeSex === "male"
-      ? 10 * w + 6.25 * h - 5 * a + 5
-      : 10 * w + 6.25 * h - 5 * a - 161;
+    const bmr = tdeeSex === "male" ? 10 * w + 6.25 * h - 5 * a + 5 : 10 * w + 6.25 * h - 5 * a - 161;
     const tdee = Math.round(bmr * act);
-    setTdeeResult({
-      tdee,
-      cut: Math.round(tdee - 500),
-      bulk: Math.round(tdee + 300),
-    });
+    setTdeeResult({ tdee, cut: Math.round(tdee - 500), bulk: Math.round(tdee + 300) });
   }
 
-  // ── 1RM ──────────────────────────────────────────────────
   const [ormWeight, setOrmWeight] = useState("");
-  const [ormReps, setOrmReps]     = useState("");
+  const [ormReps, setOrmReps] = useState("");
   const [ormResult, setOrmResult] = useState(null);
 
   function calcOrm(e) {
@@ -523,26 +387,19 @@ function FitnessTools() {
     const r = parseInt(ormReps, 10);
     if (!w || !r || r < 1) return;
     if (r === 1) { setOrmResult({ orm: w, pcts: pctTable(w) }); return; }
-    // Epley formula
     const orm = w * (1 + r / 30);
     setOrmResult({ orm: Math.round(orm * 10) / 10, pcts: pctTable(orm) });
   }
 
   function pctTable(orm) {
-    return [100, 95, 90, 85, 80, 75, 70].map((pct) => ({
-      pct,
-      kg: Math.round((orm * pct) / 100 * 10) / 10,
-    }));
+    return [100, 95, 90, 85, 80, 75, 70].map((pct) => ({ pct, kg: Math.round((orm * pct) / 100 * 10) / 10 }));
   }
 
   return (
     <div className="tools-page">
       <h1 className="tools-title">Fitness Calculators</h1>
       <p className="tools-subtitle">Free tools — no account needed.</p>
-
       <div className="tools-grid">
-
-        {/* ── BMI Calculator ─────────────────────────── */}
         <div className="tool-card">
           <div className="tool-card-header tool-card-header--blue">
             <span className="tool-card-icon">⚖️</span>
@@ -550,14 +407,8 @@ function FitnessTools() {
           </div>
           <p className="tool-card-desc">Body Mass Index — a quick indicator of healthy weight range.</p>
           <form className="tool-form" onSubmit={calcBmi}>
-            <label className="tool-label">
-              Height (cm)
-              <input type="number" min="50" max="250" placeholder="e.g. 175" value={bmiHeight} onChange={e => setBmiHeight(e.target.value)} required />
-            </label>
-            <label className="tool-label">
-              Weight (kg)
-              <input type="number" min="20" max="300" placeholder="e.g. 75" value={bmiWeight} onChange={e => setBmiWeight(e.target.value)} required />
-            </label>
+            <label className="tool-label">Height (cm)<input type="number" min="50" max="250" placeholder="e.g. 175" value={bmiHeight} onChange={e => setBmiHeight(e.target.value)} required /></label>
+            <label className="tool-label">Weight (kg)<input type="number" min="20" max="300" placeholder="e.g. 75" value={bmiWeight} onChange={e => setBmiWeight(e.target.value)} required /></label>
             <button type="submit">Calculate BMI</button>
           </form>
           {bmiResult && (
@@ -574,7 +425,6 @@ function FitnessTools() {
           )}
         </div>
 
-        {/* ── TDEE Calculator ────────────────────────── */}
         <div className="tool-card">
           <div className="tool-card-header tool-card-header--teal">
             <span className="tool-card-icon">🔥</span>
@@ -583,57 +433,29 @@ function FitnessTools() {
           <p className="tool-card-desc">Total Daily Energy Expenditure — how many calories you burn per day.</p>
           <form className="tool-form" onSubmit={calcTdee}>
             <div className="tool-row">
-              <label className="tool-label">
-                Height (cm)
-                <input type="number" min="50" max="250" placeholder="175" value={tdeeHeight} onChange={e => setTdeeHeight(e.target.value)} required />
-              </label>
-              <label className="tool-label">
-                Weight (kg)
-                <input type="number" min="20" max="300" placeholder="75" value={tdeeWeight} onChange={e => setTdeeWeight(e.target.value)} required />
-              </label>
+              <label className="tool-label">Height (cm)<input type="number" min="50" max="250" placeholder="175" value={tdeeHeight} onChange={e => setTdeeHeight(e.target.value)} required /></label>
+              <label className="tool-label">Weight (kg)<input type="number" min="20" max="300" placeholder="75" value={tdeeWeight} onChange={e => setTdeeWeight(e.target.value)} required /></label>
             </div>
             <div className="tool-row">
-              <label className="tool-label">
-                Age
-                <input type="number" min="10" max="100" placeholder="25" value={tdeeAge} onChange={e => setTdeeAge(e.target.value)} required />
-              </label>
-              <label className="tool-label">
-                Sex
-                <select value={tdeeSex} onChange={e => setTdeeSex(e.target.value)}>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </label>
+              <label className="tool-label">Age<input type="number" min="10" max="100" placeholder="25" value={tdeeAge} onChange={e => setTdeeAge(e.target.value)} required /></label>
+              <label className="tool-label">Sex<select value={tdeeSex} onChange={e => setTdeeSex(e.target.value)}><option value="male">Male</option><option value="female">Female</option></select></label>
             </div>
-            <label className="tool-label">
-              Activity level
+            <label className="tool-label">Activity level
               <select value={tdeeActivity} onChange={e => setTdeeActivity(e.target.value)}>
-                {Object.entries(activityLabels).map(([val, lab]) => (
-                  <option key={val} value={val}>{lab}</option>
-                ))}
+                {Object.entries(activityLabels).map(([val, lab]) => <option key={val} value={val}>{lab}</option>)}
               </select>
             </label>
             <button type="submit">Calculate TDEE</button>
           </form>
           {tdeeResult && (
             <div className="tool-result tool-result--tdee">
-              <div className="tdee-row tdee-main">
-                <span className="tdee-label">Maintenance</span>
-                <span className="tdee-value" style={{ color: "#5eead4" }}>{tdeeResult.tdee} kcal</span>
-              </div>
-              <div className="tdee-row">
-                <span className="tdee-label">🔻 Cut (−500 kcal)</span>
-                <span className="tdee-value" style={{ color: "#60a5fa" }}>{tdeeResult.cut} kcal</span>
-              </div>
-              <div className="tdee-row">
-                <span className="tdee-label">🔺 Bulk (+300 kcal)</span>
-                <span className="tdee-value" style={{ color: "#fbbf24" }}>{tdeeResult.bulk} kcal</span>
-              </div>
+              <div className="tdee-row tdee-main"><span className="tdee-label">Maintenance</span><span className="tdee-value" style={{ color: "#5eead4" }}>{tdeeResult.tdee} kcal</span></div>
+              <div className="tdee-row"><span className="tdee-label">🔻 Cut (−500 kcal)</span><span className="tdee-value" style={{ color: "#60a5fa" }}>{tdeeResult.cut} kcal</span></div>
+              <div className="tdee-row"><span className="tdee-label">🔺 Bulk (+300 kcal)</span><span className="tdee-value" style={{ color: "#fbbf24" }}>{tdeeResult.bulk} kcal</span></div>
             </div>
           )}
         </div>
 
-        {/* ── 1RM Calculator ─────────────────────────── */}
         <div className="tool-card">
           <div className="tool-card-header tool-card-header--purple">
             <span className="tool-card-icon">🏆</span>
@@ -641,36 +463,21 @@ function FitnessTools() {
           </div>
           <p className="tool-card-desc">Estimate your one-rep max from any working set using the Epley formula.</p>
           <form className="tool-form" onSubmit={calcOrm}>
-            <label className="tool-label">
-              Weight lifted (kg)
-              <input type="number" min="1" max="600" placeholder="e.g. 100" value={ormWeight} onChange={e => setOrmWeight(e.target.value)} required />
-            </label>
-            <label className="tool-label">
-              Reps performed
-              <input type="number" min="1" max="30" placeholder="e.g. 5" value={ormReps} onChange={e => setOrmReps(e.target.value)} required />
-            </label>
+            <label className="tool-label">Weight lifted (kg)<input type="number" min="1" max="600" placeholder="e.g. 100" value={ormWeight} onChange={e => setOrmWeight(e.target.value)} required /></label>
+            <label className="tool-label">Reps performed<input type="number" min="1" max="30" placeholder="e.g. 5" value={ormReps} onChange={e => setOrmReps(e.target.value)} required /></label>
             <button type="submit">Estimate 1RM</button>
           </form>
           {ormResult && (
             <div className="tool-result tool-result--orm">
               <p className="orm-max">Estimated 1RM: <strong style={{ color: "#c4b5fd" }}>{ormResult.orm} kg</strong></p>
               <table className="orm-table">
-                <thead>
-                  <tr><th>%</th><th>kg</th><th>Use for</th></tr>
-                </thead>
+                <thead><tr><th>%</th><th>kg</th><th>Use for</th></tr></thead>
                 <tbody>
                   {ormResult.pcts.map(({ pct, kg }) => (
                     <tr key={pct}>
                       <td>{pct}%</td>
                       <td style={{ color: "#c4b5fd", fontWeight: 700 }}>{kg}</td>
-                      <td className="orm-use">
-                        {pct === 100 ? "1RM" :
-                         pct === 95  ? "1–2 reps" :
-                         pct === 90  ? "2–3 reps" :
-                         pct === 85  ? "3–5 reps" :
-                         pct === 80  ? "5–6 reps" :
-                         pct === 75  ? "6–8 reps" : "8–10 reps"}
-                      </td>
+                      <td className="orm-use">{pct === 100 ? "1RM" : pct === 95 ? "1–2 reps" : pct === 90 ? "2–3 reps" : pct === 85 ? "3–5 reps" : pct === 80 ? "5–6 reps" : pct === 75 ? "6–8 reps" : "8–10 reps"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -678,7 +485,6 @@ function FitnessTools() {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
@@ -686,14 +492,19 @@ function FitnessTools() {
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const isAdminPage = currentPath === "/admin/workouts";
-  const isAboutPage = currentPath === "/about" || (currentPath === "/" && !localStorage.getItem("token"));
-  const isLoginPage = currentPath === "/login";
-  const isAccountPage = currentPath === "/account";
-  const isToolsPage = currentPath === "/tools";
+
   const detailsMatch = currentPath.match(/^\/programs\/(\d+)$/);
   const isProgramDetailsPage = Boolean(detailsMatch);
   const programDetailsId = detailsMatch ? Number(detailsMatch[1]) : null;
+
+  const isAboutPage = currentPath === "/about" || (currentPath === "/" && !localStorage.getItem("token"));
+  const isLoginPage = currentPath === "/login";
+  const isToolsPage = currentPath === "/tools";
+  const isAccountPage = currentPath === "/account";
+  const isAdminPage = currentPath === "/admin/workouts";
+  const isProgressPage = currentPath === "/progress";
+  const isAdvicePage = currentPath === "/advice";
+  const isProgramsPage = (currentPath === "/" || currentPath === "/programs") && !isProgramDetailsPage;
 
   const [isRegister, setIsRegister] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
@@ -718,17 +529,14 @@ function App() {
   const [editingProgramId, setEditingProgramId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [editItems, setEditItems] = useState([]);
-  const [bulkJson, setBulkJson] = useState(`[
-  {"workout":"Bench Press","description":"barbell chest press","muscle_group":"Chest"},
-  {"workout":"Incline Bench Press","description":"upper chest press","muscle_group":"Chest"},
-  {"workout":"Decline Bench Press","description":"lower chest press","muscle_group":"Chest"}
-]`);
+  const [bulkJson, setBulkJson] = useState(`[\n  {"workout":"Bench Press","description":"barbell chest press","muscle_group":"Chest"}\n]`);
   const [bulkResult, setBulkResult] = useState(null);
   const [manualWorkoutDate, setManualWorkoutDate] = useState("");
   const [dailyAdvice, setDailyAdvice] = useState(() => localStorage.getItem("lastAdvice") || "");
   const [adviceSource, setAdviceSource] = useState(() => localStorage.getItem("lastAdviceSource") || "");
   const [adviceCachedAt, setAdviceCachedAt] = useState(() => localStorage.getItem("lastAdviceDate") || "");
   const [adviceFeedback, setAdviceFeedback] = useState("");
+  const [adviceLoading, setAdviceLoading] = useState(false);
   const [userEquipment, setUserEquipment] = useState(localStorage.getItem("userEquipment") || "gym");
   const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
   const [message, setMessage] = useState("");
@@ -766,36 +574,27 @@ function App() {
     if (stored) document.documentElement.classList.add("dark");
     return stored;
   });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [deleteAccountError, setDeleteAccountError] = useState("");
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
 
   useEffect(() => {
-    const onPopState = () => {
-      setCurrentPath(window.location.pathname);
-    };
-
+    const onPopState = () => setCurrentPath(window.location.pathname);
     window.addEventListener("popstate", onPopState);
-    return () => {
-      window.removeEventListener("popstate", onPopState);
-    };
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    if (darkMode) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
   useEffect(() => {
     if (!isAboutPage) return;
-    trackVisit().then((data) => {
-      if (data?.visitId) setVisitId(data.visitId);
-    }).catch(() => {});
+    trackVisit().then((data) => { if (data?.visitId) setVisitId(data.visitId); }).catch(() => {});
   }, [isAboutPage]);
 
   useEffect(() => {
@@ -809,112 +608,74 @@ function App() {
     }
   }, [token]);
 
-  async function loadPrograms(currentToken) {
-    try {
-      const data = await getPrograms(currentToken);
-      setPrograms(data.filter((program) => !program.deleted));
-    } catch (err) {
-      setError(err.message);
+  // Redirect logged-in users away from public-only pages
+  useEffect(() => {
+    if (token && (currentPath === "/about" || currentPath === "/login")) {
+      navigateTo("/");
     }
-  }
+  }, [token, currentPath]);
 
-  async function loadWorkouts(currentToken) {
-    try {
-      const data = await getWorkouts(currentToken);
-      setWorkouts(data);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
+  // Close sidebar on navigation
+  useEffect(() => { setIsSidebarOpen(false); }, [currentPath]);
 
-  async function loadProfile(currentToken) {
+  async function loadPrograms(t) {
+    try { const data = await getPrograms(t); setPrograms(data.filter((p) => !p.deleted)); }
+    catch (err) { setError(err.message); }
+  }
+  async function loadWorkouts(t) {
+    try { setWorkouts(await getWorkouts(t)); }
+    catch (err) { setError(err.message); }
+  }
+  async function loadProfile(t) {
     try {
-      const profile = await getProfile(currentToken);
+      const profile = await getProfile(t);
       const eq = profile.equipment || "gym";
       setUserEquipment(eq);
       localStorage.setItem("userEquipment", eq);
-      if (profile.role) {
-        setUserRole(profile.role);
-        localStorage.setItem("userRole", profile.role);
-      }
+      if (profile.role) { setUserRole(profile.role); localStorage.setItem("userRole", profile.role); }
       setHeightCm(profile.height_cm != null ? String(profile.height_cm) : "");
       setWeightKg(profile.weight_kg != null ? String(profile.weight_kg) : "");
       setBodyFatPct(profile.body_fat_pct != null ? String(profile.body_fat_pct) : "");
       setMetricsLoaded(true);
-    } catch {
-      // non-critical — silently ignore
-    }
+    } catch { /* non-critical */ }
   }
-
-  async function loadStreaks(currentToken) {
-    try {
-      const data = await getStreaks(currentToken);
-      setStreaks(data);
-    } catch {
-      // non-critical
-    }
+  async function loadStreaks(t) {
+    try { setStreaks(await getStreaks(t)); } catch { /* non-critical */ }
   }
-
-  async function loadPersonalRecords(currentToken) {
-    try {
-      const data = await getPersonalRecords(currentToken);
-      setPersonalRecords(data);
-    } catch {
-      // non-critical
-    }
+  async function loadPersonalRecords(t) {
+    try { setPersonalRecords(await getPersonalRecords(t)); } catch { /* non-critical */ }
+  }
+  async function loadMetricsLog(t) {
+    try { setMetricsLog(await getBodyMetricsLog(t)); } catch { /* non-critical */ }
   }
 
   async function handleSavePersonalRecord(e) {
     e.preventDefault();
-    setPrSaving(true);
-    setPrMessage("");
-    setError("");
+    setPrSaving(true); setPrMessage(""); setError("");
     try {
       const result = await savePersonalRecord(token, {
         exercise_name: prExerciseName.trim(),
         weight_kg: parseFloat(prWeight),
         reps: parseInt(prReps, 10) || 1,
       });
-      if (result.isNewRecord) {
-        setPrMessage(`New PR for ${result.exercise_name}: ${result.weight_kg} kg × ${result.reps} reps!`);
-      } else {
-        setPrMessage(`${result.exercise_name} already has a higher record.`);
-      }
-      setPrExerciseName("");
-      setPrWeight("");
-      setPrReps("");
+      setPrMessage(result.isNewRecord
+        ? `New PR for ${result.exercise_name}: ${result.weight_kg} kg × ${result.reps} reps!`
+        : `${result.exercise_name} already has a higher record.`);
+      setPrExerciseName(""); setPrWeight(""); setPrReps("");
       await loadPersonalRecords(token);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setPrSaving(false);
-    }
+    } catch (err) { setError(err.message); }
+    finally { setPrSaving(false); }
   }
 
-  async function handleDeletePR(recordId) {
+  async function handleDeletePR(id) {
     setError("");
-    try {
-      await deletePersonalRecord(token, recordId);
-      setPersonalRecords((prev) => prev.filter((r) => r.id !== recordId));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function loadMetricsLog(currentToken) {
-    try {
-      const data = await getBodyMetricsLog(currentToken);
-      setMetricsLog(data);
-    } catch {
-      // non-critical
-    }
+    try { await deletePersonalRecord(token, id); setPersonalRecords((prev) => prev.filter((r) => r.id !== id)); }
+    catch (err) { setError(err.message); }
   }
 
   async function handleSaveMetricsEntry(e) {
     e.preventDefault();
-    setLogSaving(true);
-    setError("");
-    setMessage("");
+    setLogSaving(true); setError(""); setMessage("");
     try {
       const entry = await saveBodyMetricsEntry(token, {
         weight_kg: logWeight.trim() ? parseFloat(logWeight) : null,
@@ -922,60 +683,35 @@ function App() {
         note: logNote.trim() || null,
       });
       setMetricsLog((prev) => [entry, ...prev]);
-      setLogWeight("");
-      setLogBodyFat("");
-      setLogNote("");
+      setLogWeight(""); setLogBodyFat(""); setLogNote("");
       setMessage("Body metrics entry logged.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLogSaving(false);
-    }
+    } catch (err) { setError(err.message); }
+    finally { setLogSaving(false); }
   }
 
-  async function handleDeleteMetricsEntry(entryId) {
+  async function handleDeleteMetricsEntry(id) {
     setError("");
-    try {
-      await deleteBodyMetricsEntry(token, entryId);
-      setMetricsLog((prev) => prev.filter((e) => e.id !== entryId));
-    } catch (err) {
-      setError(err.message);
-    }
+    try { await deleteBodyMetricsEntry(token, id); setMetricsLog((prev) => prev.filter((e) => e.id !== id)); }
+    catch (err) { setError(err.message); }
   }
 
   async function handleChangePassword(e) {
     e.preventDefault();
-    setPwMessage("");
-    setPwError("");
-    if (pwNew !== pwConfirm) {
-      setPwError("New passwords do not match");
-      return;
-    }
-    if (pwNew.length < 6) {
-      setPwError("New password must be at least 6 characters");
-      return;
-    }
+    setPwMessage(""); setPwError("");
+    if (pwNew !== pwConfirm) { setPwError("New passwords do not match"); return; }
+    if (pwNew.length < 6) { setPwError("New password must be at least 6 characters"); return; }
     setPwSaving(true);
     try {
       await changePassword(token, { oldPassword: pwOld, newPassword: pwNew });
       setPwMessage("Password changed successfully!");
-      setPwOld("");
-      setPwNew("");
-      setPwConfirm("");
-    } catch (err) {
-      setPwError(err.message);
-    } finally {
-      setPwSaving(false);
-    }
+      setPwOld(""); setPwNew(""); setPwConfirm("");
+    } catch (err) { setPwError(err.message); }
+    finally { setPwSaving(false); }
   }
 
   async function handleDeleteAccount() {
-    if (!deleteAccountPassword) {
-      setDeleteAccountError("Please enter your password to confirm");
-      return;
-    }
-    setDeleteAccountLoading(true);
-    setDeleteAccountError("");
+    if (!deleteAccountPassword) { setDeleteAccountError("Please enter your password to confirm"); return; }
+    setDeleteAccountLoading(true); setDeleteAccountError("");
     try {
       await deleteAccount(token, { password: deleteAccountPassword });
       localStorage.removeItem("lastAdvice");
@@ -983,18 +719,12 @@ function App() {
       localStorage.removeItem("lastAdviceDate");
       setIsDeleteAccountModalOpen(false);
       handleLogout();
-    } catch (err) {
-      setDeleteAccountError(err.message);
-    } finally {
-      setDeleteAccountLoading(false);
-    }
+    } catch (err) { setDeleteAccountError(err.message); }
+    finally { setDeleteAccountLoading(false); }
   }
 
   function normalizeProgramItems(items) {
-    if (!Array.isArray(items)) {
-      return [];
-    }
-
+    if (!Array.isArray(items)) return [];
     return items.map((item) => ({
       workoutId: item.workoutId || item.workout_id || null,
       name: item.name || item.workout || "",
@@ -1006,20 +736,15 @@ function App() {
 
   async function handleAuthSubmit(event) {
     event.preventDefault();
-    setError("");
-    setMessage("");
+    setError(""); setMessage("");
     setAuthWaitHint("pls wait, request is being processed, it can take several minutes");
     setAuthLoading(true);
-
     try {
       if (isRegister) {
         await registerUser({ name, email, password });
         setMessage("Registration successful. You can now login.");
-        setIsRegister(false);
-        setPassword("");
-        return;
+        setIsRegister(false); setPassword(""); return;
       }
-
       const data = await loginUser({ email, password });
       setToken(data.token);
       setUserName(data.user.name);
@@ -1027,300 +752,153 @@ function App() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("userName", data.user.name);
       localStorage.setItem("userRole", data.user.role || "user");
-      setMessage("Login successful.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setAuthLoading(false);
-      setAuthWaitHint("");
-    }
+      navigateTo("/");
+    } catch (err) { setError(err.message); }
+    finally { setAuthLoading(false); setAuthWaitHint(""); }
   }
 
   async function handleAddProgram(event) {
     event.preventDefault();
-    setError("");
-    setMessage("");
-
-    if (programItems.length === 0) {
-      setError("Add at least one workout to the program");
-      return;
-    }
-
+    setError(""); setMessage("");
+    if (programItems.length === 0) { setError("Add at least one workout to the program"); return; }
     try {
-      const created = await createProgram(token, {
-        title: programTitle,
-        description: programItems,
-      });
-
+      const created = await createProgram(token, { title: programTitle, description: programItems });
       setPrograms((prev) => [created, ...prev]);
-      setProgramTitle("");
-      setProgramItems([]);
-      setCreateCustomWorkoutText("");
+      setProgramTitle(""); setProgramItems([]); setCreateCustomWorkoutText("");
       setMessage("Program saved.");
-    } catch (err) {
-      setError(err.message);
-    }
+    } catch (err) { setError(err.message); }
   }
 
   function handleAddWorkoutToProgram(workout) {
     setProgramItems((prev) => {
-      if (prev.some((item) => item.workoutId === workout.id)) {
-        return prev;
-      }
-
-      return [
-        ...prev,
-        {
-          workoutId: workout.id,
-          name: workout.name,
-          sets: 1,
-          repetitions: 0,
-          weightKg: 0,
-        },
-      ];
+      if (prev.some((item) => item.workoutId === workout.id)) return prev;
+      return [...prev, { workoutId: workout.id, name: workout.name, sets: 1, repetitions: 0, weightKg: 0 }];
     });
   }
 
   function handleAddCustomWorkoutToProgram() {
     const customName = createCustomWorkoutText.trim();
-    if (!customName) {
-      return;
-    }
-
+    if (!customName) return;
     setProgramItems((prev) => {
-      if (prev.some((item) => item.name.toLowerCase() === customName.toLowerCase())) {
-        return prev;
-      }
-
-      return [
-        ...prev,
-        {
-          workoutId: null,
-          name: customName,
-          sets: 1,
-          repetitions: 0,
-          weightKg: 0,
-        },
-      ];
+      if (prev.some((item) => item.name.toLowerCase() === customName.toLowerCase())) return prev;
+      return [...prev, { workoutId: null, name: customName, sets: 1, repetitions: 0, weightKg: 0 }];
     });
-
-    setCreateCustomWorkoutText("");
-    setIsCreateCustomModalOpen(false);
+    setCreateCustomWorkoutText(""); setIsCreateCustomModalOpen(false);
   }
 
   function handleCreateWorkoutSelect(value) {
-    if (!value) {
-      return;
-    }
-
-    const selectedWorkout = workouts.find((workout) => workout.id === Number(value));
-    if (!selectedWorkout) {
-      return;
-    }
-
-    handleAddWorkoutToProgram(selectedWorkout);
+    if (!value) return;
+    const w = workouts.find((workout) => workout.id === Number(value));
+    if (w) handleAddWorkoutToProgram(w);
   }
 
-  function handleRemoveWorkoutFromProgram(itemIndex) {
-    setProgramItems((prev) => prev.filter((_, index) => index !== itemIndex));
+  function handleRemoveWorkoutFromProgram(idx) {
+    setProgramItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function handleProgramItemChange(itemIndex, field, value) {
-    const parsedValue = Number.parseInt(value, 10);
-    const safeValue = Number.isNaN(parsedValue) || parsedValue < 0 ? 0 : parsedValue;
-
-    setProgramItems((prev) =>
-      prev.map((item, index) => (index === itemIndex ? { ...item, [field]: safeValue } : item))
-    );
+  function handleProgramItemChange(idx, field, value) {
+    const parsed = Number.parseInt(value, 10);
+    const safe = Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    setProgramItems((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: safe } : item));
   }
 
   function startEditing(program) {
     setEditingProgramId(program.id);
     setEditTitle(program.title);
     setEditItems(normalizeProgramItems(program.description));
-    setMessage("");
-    setError("");
+    setMessage(""); setError("");
   }
 
   function cancelEditing() {
-    setEditingProgramId(null);
-    setEditTitle("");
-    setEditItems([]);
-    setEditCustomWorkoutText("");
-    setIsEditCustomModalOpen(false);
+    setEditingProgramId(null); setEditTitle(""); setEditItems([]);
+    setEditCustomWorkoutText(""); setIsEditCustomModalOpen(false);
   }
 
   function handleAddWorkoutToEdit(workout) {
     setEditItems((prev) => {
-      if (prev.some((item) => item.workoutId === workout.id)) {
-        return prev;
-      }
-
-      return [
-        ...prev,
-        {
-          workoutId: workout.id,
-          name: workout.name,
-          sets: 1,
-          repetitions: 0,
-          weightKg: 0,
-        },
-      ];
+      if (prev.some((item) => item.workoutId === workout.id)) return prev;
+      return [...prev, { workoutId: workout.id, name: workout.name, sets: 1, repetitions: 0, weightKg: 0 }];
     });
   }
 
   function handleAddCustomWorkoutToEdit() {
     const customName = editCustomWorkoutText.trim();
-    if (!customName) {
-      return;
-    }
-
+    if (!customName) return;
     setEditItems((prev) => {
-      if (prev.some((item) => item.name.toLowerCase() === customName.toLowerCase())) {
-        return prev;
-      }
-
-      return [
-        ...prev,
-        {
-          workoutId: null,
-          name: customName,
-          sets: 1,
-          repetitions: 0,
-          weightKg: 0,
-        },
-      ];
+      if (prev.some((item) => item.name.toLowerCase() === customName.toLowerCase())) return prev;
+      return [...prev, { workoutId: null, name: customName, sets: 1, repetitions: 0, weightKg: 0 }];
     });
-
-    setEditCustomWorkoutText("");
-    setIsEditCustomModalOpen(false);
+    setEditCustomWorkoutText(""); setIsEditCustomModalOpen(false);
   }
 
   function handleEditWorkoutSelect(value) {
-    if (!value) {
-      return;
-    }
-
-    const selectedWorkout = workouts.find((workout) => workout.id === Number(value));
-    if (!selectedWorkout) {
-      return;
-    }
-
-    handleAddWorkoutToEdit(selectedWorkout);
+    if (!value) return;
+    const w = workouts.find((workout) => workout.id === Number(value));
+    if (w) handleAddWorkoutToEdit(w);
   }
 
-  function handleRemoveWorkoutFromEdit(itemIndex) {
-    setEditItems((prev) => prev.filter((_, index) => index !== itemIndex));
+  function handleRemoveWorkoutFromEdit(idx) {
+    setEditItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function handleEditItemChange(itemIndex, field, value) {
-    const parsedValue = Number.parseInt(value, 10);
-    const safeValue = Number.isNaN(parsedValue) || parsedValue < 0 ? 0 : parsedValue;
-
-    setEditItems((prev) =>
-      prev.map((item, index) => (index === itemIndex ? { ...item, [field]: safeValue } : item))
-    );
+  function handleEditItemChange(idx, field, value) {
+    const parsed = Number.parseInt(value, 10);
+    const safe = Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    setEditItems((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: safe } : item));
   }
 
   async function handleSaveEdit(programId) {
-    setError("");
-    setMessage("");
-
-    if (editItems.length === 0) {
-      setError("Program must include at least one workout");
-      return;
-    }
-
+    setError(""); setMessage("");
+    if (editItems.length === 0) { setError("Program must include at least one workout"); return; }
     try {
-      const updated = await updateProgram(token, programId, {
-        title: editTitle,
-        description: editItems,
-      });
-
-      setPrograms((prev) => prev.map((program) => (program.id === programId ? updated : program)));
-      setMessage("Program updated.");
-      cancelEditing();
-    } catch (err) {
-      setError(err.message);
-    }
+      const updated = await updateProgram(token, programId, { title: editTitle, description: editItems });
+      setPrograms((prev) => prev.map((p) => p.id === programId ? updated : p));
+      setMessage("Program updated."); cancelEditing();
+    } catch (err) { setError(err.message); }
   }
 
   async function handleBulkImport(event) {
     event.preventDefault();
-    setError("");
-    setMessage("");
-    setBulkResult(null);
-
+    setError(""); setMessage(""); setBulkResult(null);
     try {
       const parsed = JSON.parse(bulkJson);
-      if (!Array.isArray(parsed)) {
-        throw new Error("JSON must be an array of workout objects");
-      }
-
+      if (!Array.isArray(parsed)) throw new Error("JSON must be an array of workout objects");
       const result = await bulkCreateWorkouts(token, parsed);
       setBulkResult(result);
-      setMessage(
-        `Bulk import done. Inserted: ${result.insertedCount}, Skipped: ${result.skippedCount}`
-      );
-    } catch (err) {
-      setError(err.message || "Invalid JSON payload");
-    }
+      setMessage(`Bulk import done. Inserted: ${result.insertedCount}, Skipped: ${result.skippedCount}`);
+    } catch (err) { setError(err.message || "Invalid JSON payload"); }
   }
 
   async function handleSoftDeleteProgram(programId) {
-    setError("");
-    setMessage("");
-
-    const isConfirmed = window.confirm("Are you sure you want to delete this program?");
-    if (!isConfirmed) {
-      return;
-    }
-
+    setError(""); setMessage("");
+    if (!window.confirm("Are you sure you want to delete this program?")) return;
     try {
       await softDeleteProgram(token, programId);
-      setPrograms((prev) => prev.filter((program) => program.id !== programId));
-      setMessage("Program deleted (soft delete).");
-      if (editingProgramId === programId) {
-        cancelEditing();
-      }
-      if (programDetailsId === programId) {
-        navigateTo("/");
-      }
-    } catch (err) {
-      setError(err.message);
-    }
+      setPrograms((prev) => prev.filter((p) => p.id !== programId));
+      setMessage("Program deleted.");
+      if (editingProgramId === programId) cancelEditing();
+      if (programDetailsId === programId) navigateTo("/");
+    } catch (err) { setError(err.message); }
   }
 
-  const [adviceLoading, setAdviceLoading] = useState(false);
-
   async function handleGetExampleAdvice() {
-    setExampleAdviceLoading(true);
-    setExampleAdviceError("");
+    setExampleAdviceLoading(true); setExampleAdviceError("");
     trackExampleAdviceClick(visitId).catch(() => {});
     try {
       const result = await getExampleAdvice();
       setExampleAdvice(result.advice || "");
-    } catch (err) {
-      setExampleAdviceError(err.message || "Could not load recommendation. Please try again.");
-    } finally {
-      setExampleAdviceLoading(false);
-    }
+    } catch (err) { setExampleAdviceError(err.message || "Could not load recommendation. Please try again."); }
+    finally { setExampleAdviceLoading(false); }
   }
 
   async function handleGetDailyAdvice() {
-    setError("");
-    setMessage("");
-    setAdviceFeedback("");
-    setAdviceLoading(true);
-
+    setError(""); setMessage(""); setAdviceFeedback(""); setAdviceLoading(true);
     try {
       const result = await getDailyAdvice(token);
       const advice = result.advice || "No advice returned";
       const source = result.source || "unknown";
       const now = new Date().toISOString();
-      setDailyAdvice(advice);
-      setAdviceSource(source);
-      setAdviceCachedAt(now);
+      setDailyAdvice(advice); setAdviceSource(source); setAdviceCachedAt(now);
       localStorage.setItem("lastAdvice", advice);
       localStorage.setItem("lastAdviceSource", source);
       localStorage.setItem("lastAdviceDate", now);
@@ -1331,54 +909,36 @@ function App() {
       } else {
         setError(msg || "Failed to get advice. Please try again.");
       }
-    } finally {
-      setAdviceLoading(false);
-    }
+    } finally { setAdviceLoading(false); }
   }
 
   async function handleAddWorkoutDate(programId, dateValue) {
-    setError("");
-    setMessage("");
-
+    setError(""); setMessage("");
     try {
       const updated = await addProgramWorkoutDate(token, programId, dateValue);
-      setPrograms((prev) => prev.map((program) => (program.id === programId ? updated : program)));
-      setMessage("Workout date recorded.");
-      loadStreaks(token);
-    } catch (err) {
-      setError(err.message);
-    }
+      setPrograms((prev) => prev.map((p) => p.id === programId ? updated : p));
+      setMessage("Workout date recorded."); loadStreaks(token);
+    } catch (err) { setError(err.message); }
   }
 
   async function handleDeleteWorkoutDate(programId, dateValue) {
-    setError("");
-    setMessage("");
-
+    setError(""); setMessage("");
     try {
       const updated = await deleteProgramWorkoutDate(token, programId, dateValue);
-      setPrograms((prev) => prev.map((program) => (program.id === programId ? updated : program)));
-      setMessage("Workout date removed.");
-      loadStreaks(token);
-    } catch (err) {
-      setError(err.message);
-    }
+      setPrograms((prev) => prev.map((p) => p.id === programId ? updated : p));
+      setMessage("Workout date removed."); loadStreaks(token);
+    } catch (err) { setError(err.message); }
   }
 
   async function handleEquipmentChange(newEquipment) {
     setUserEquipment(newEquipment);
     localStorage.setItem("userEquipment", newEquipment);
-    try {
-      await updateEquipment(token, newEquipment);
-      setMessage(`Equipment updated to "${newEquipment}".`);
-    } catch (err) {
-      setError(err.message);
-    }
+    try { await updateEquipment(token, newEquipment); setMessage(`Equipment updated to "${newEquipment}".`); }
+    catch (err) { setError(err.message); }
   }
 
   async function handleSaveMetrics() {
-    setError("");
-    setMessage("");
-    setMetricsSaving(true);
+    setError(""); setMessage(""); setMetricsSaving(true);
     try {
       const payload = {};
       if (heightCm.trim()) payload.height_cm = parseFloat(heightCm);
@@ -1389,1046 +949,720 @@ function App() {
       setWeightKg(updated.weight_kg != null ? String(updated.weight_kg) : "");
       setBodyFatPct(updated.body_fat_pct != null ? String(updated.body_fat_pct) : "");
       setMessage("Body metrics updated.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setMetricsSaving(false);
-    }
+    } catch (err) { setError(err.message); }
+    finally { setMetricsSaving(false); }
   }
 
   function formatDateTime(dateValue) {
     const parsed = new Date(dateValue);
-    if (Number.isNaN(parsed.getTime())) {
-      return dateValue;
-    }
-
-    return parsed.toLocaleString();
+    return Number.isNaN(parsed.getTime()) ? dateValue : parsed.toLocaleString();
   }
 
   function navigateTo(path) {
-    if (window.location.pathname === path) {
-      return;
-    }
-
+    if (window.location.pathname === path) return;
     window.history.pushState({}, "", path);
     setCurrentPath(path);
   }
 
   function handleLogout() {
-    setToken("");
-    setUserName("");
-    setUserRole("user");
-    setPrograms([]);
-    setDailyAdvice("");
-    setAdviceSource("");
-    setAdviceCachedAt("");
-    localStorage.removeItem("token");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("lastAdvice");
-    localStorage.removeItem("lastAdviceSource");
-    localStorage.removeItem("lastAdviceDate");
+    setToken(""); setUserName(""); setUserRole("user"); setPrograms([]);
+    setDailyAdvice(""); setAdviceSource(""); setAdviceCachedAt("");
+    localStorage.removeItem("token"); localStorage.removeItem("userName");
+    localStorage.removeItem("userRole"); localStorage.removeItem("lastAdvice");
+    localStorage.removeItem("lastAdviceSource"); localStorage.removeItem("lastAdviceDate");
     navigateTo("/about");
   }
 
-  const selectedProgram = isProgramDetailsPage
-    ? programs.find((program) => program.id === programDetailsId)
-    : null;
+  const selectedProgram = isProgramDetailsPage ? programs.find((p) => p.id === programDetailsId) : null;
+
+  /* ─────────────────────────────────────────────────────────────
+     SHARED JSX FRAGMENTS
+     ───────────────────────────────────────────────────────────── */
+
+  function ProgramForm({ items, setItems, title, setTitle, onSubmit, submitLabel, searchQuery, setSearchQuery, onWorkoutSelect, onCustomOpen }) {
+    return (
+      <form onSubmit={onSubmit} className="add-program-form">
+        <input type="text" placeholder="Program title" value={title}
+          onChange={(e) => setTitle(e.target.value)} required />
+        <div className="dropdown-panel">
+          <p className="field-hint">Workout selector</p>
+          <div className="selector-actions">
+            <SearchableWorkoutDropdown workouts={workouts} searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery} onSelect={onWorkoutSelect} triggerLabel="Select workout" />
+            <button type="button" className="secondary" onClick={onCustomOpen}>Add custom</button>
+          </div>
+        </div>
+        <div className="program-items">
+          {items.map((item, idx) => (
+            <div className="program-item" key={`${item.workoutId ?? "custom"}-${item.name}-${idx}`}>
+              <strong>{item.name}</strong>
+              <div className="numbers-row">
+                <label><span className="field-hint">Sets</span>
+                  <input type="number" min="1" value={item.sets ?? 1}
+                    onChange={(e) => { const p = parseInt(e.target.value,10); const s = isNaN(p)||p<0?0:p; setItems(prev=>prev.map((it,i)=>i===idx?{...it,sets:s}:it)); }} placeholder="3" />
+                </label>
+                <label><span className="field-hint">Reps</span>
+                  <input type="number" min="0" value={item.repetitions}
+                    onChange={(e) => { const p = parseInt(e.target.value,10); const s = isNaN(p)||p<0?0:p; setItems(prev=>prev.map((it,i)=>i===idx?{...it,repetitions:s}:it)); }} placeholder="10" />
+                </label>
+                <label><span className="field-hint">Weight (kg)</span>
+                  <input type="number" min="0" value={item.weightKg}
+                    onChange={(e) => { const p = parseInt(e.target.value,10); const s = isNaN(p)||p<0?0:p; setItems(prev=>prev.map((it,i)=>i===idx?{...it,weightKg:s}:it)); }} placeholder="60" />
+                </label>
+              </div>
+              <button type="button" className="secondary"
+                onClick={() => setItems(prev=>prev.filter((_,i)=>i!==idx))}>Remove</button>
+            </div>
+          ))}
+        </div>
+        <button type="submit">{submitLabel}</button>
+      </form>
+    );
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     RENDER
+     ───────────────────────────────────────────────────────────── */
 
   return (
     <>
-      {/* ── Top navigation bar ─────────────────────────────────── */}
-      <header className="topbar">
-        <button type="button" className="topbar-brand" onClick={() => navigateTo("/about")}>Fitness Tracker</button>
-
-        <nav className="topbar-nav">
-          {token ? (
-            <>
-              <button
-                type="button"
-                className={`topbar-nav-btn${!isAdminPage && !isProgramDetailsPage && !isAboutPage && !isAccountPage ? " active" : ""}`}
-                onClick={() => navigateTo("/")}
-              >
-                Dashboard
-              </button>
-              <button
-                type="button"
-                className={`topbar-nav-btn${isAccountPage ? " active" : ""}`}
-                onClick={() => navigateTo("/account")}
-              >
-                Account
-              </button>
-              {userRole === "admin" && (
-                <button
-                  type="button"
-                  className={`topbar-nav-btn${isAdminPage ? " active" : ""}`}
-                  onClick={() => navigateTo("/admin/workouts")}
-                >
-                  Admin
-                </button>
-              )}
-            </>
-          ) : (
-            <button
-              type="button"
-              className={`topbar-nav-btn${isLoginPage ? " active" : ""}`}
-              onClick={() => navigateTo("/login")}
-            >
-              Login
-            </button>
-          )}
-          <button
-            type="button"
-            className={`topbar-nav-btn${isToolsPage ? " active" : ""}`}
-            onClick={() => navigateTo("/tools")}
-          >
-            Tools
-          </button>
-          <button
-            type="button"
-            className={`topbar-nav-btn${isAboutPage ? " active" : ""}`}
-            onClick={() => navigateTo("/about")}
-          >
-            About
-          </button>
-        </nav>
-
-        <button
-          type="button"
-          className="topbar-darkmode"
-          onClick={() => setDarkMode((prev) => !prev)}
-          title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {darkMode ? "☀️" : "🌙"}
-        </button>
-
-        {token && (
-          <div className="topbar-right">
-            <span className="topbar-user">👤 {userName}</span>
-            <button type="button" className="topbar-logout" onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
-        )}
-      </header>
-
-      <div className="container">
-        {isToolsPage ? (
-          <FitnessTools />
-        ) : isAboutPage ? (
-          <>
-          <div className="card info-card">
-            <p className="info-hero">💪</p>
-            <h1 className="info-title">Fitness Tracker</h1>
-            <p className="info-description">
-              A simple but powerful fitness tracker that helps you build and manage your workout
-              programs. Log your sessions, track your history, and get{" "}
-              <strong>personalized AI recommendations</strong> tailored to your equipment.
-            </p>
-            <ul className="info-features">
-              <li>📋 Create and manage custom workout programs</li>
-              <li>📅 Log every session and track your history</li>
-              <li>🤖 Get daily AI-powered workout advice</li>
-              <li>🏋️ Works for gym, home, or bodyweight training</li>
-            </ul>
-            <button
-              type="button"
-              className="info-cta"
-              onClick={() => {
-                setIsRegister(true);
-                navigateTo("/login");
-              }}
-            >
-              I want to try it →
-            </button>
-          </div>
-
-          <div className="about-tiles">
-            <div className="about-tile about-tile--blue">
-              <span className="about-tile-icon">🔥</span>
-              <span className="about-tile-value">Streaks</span>
-              <span className="about-tile-label">Stay consistent</span>
-            </div>
-            <div className="about-tile about-tile--teal">
-              <span className="about-tile-icon">🏆</span>
-              <span className="about-tile-value">PRs</span>
-              <span className="about-tile-label">Beat your best</span>
-            </div>
-            <div className="about-tile about-tile--purple">
-              <span className="about-tile-icon">🤖</span>
-              <span className="about-tile-value">AI</span>
-              <span className="about-tile-label">Daily coaching</span>
-            </div>
-            <div className="about-tile about-tile--amber">
-              <span className="about-tile-icon">📊</span>
-              <span className="about-tile-value">Metrics</span>
-              <span className="about-tile-label">Track progress</span>
-            </div>
-          </div>
-
-          <div className="info-example">
-            <h2 className="info-example-heading">See it in action</h2>
-            <p className="info-example-sub">Here's an example home dumbbell program and what the AI recommends for it.</p>
-
-            <div className="example-program-card">
-              <div className="example-program-header">
-                <strong>Home Dumbbell Full Body</strong>
-                <span className="example-equipment-badge">Home Equipment: Dumbbells</span>
-              </div>
-              <ul className="example-exercises">
-                <li>Floor Dumbbell Press — 3 × 10</li>
-                <li>Dumbbell Row — 3 × 10</li>
-                <li>Shoulder Press — 3 × 12</li>
-                <li>Dumbbell Concentration Curls — 3 × 12</li>
-                <li>Overhead Triceps Extension — 3 × 12</li>
-                <li>Squats — 4 × 15</li>
-                <li>Calf Raises — 3 × 20</li>
-              </ul>
-            </div>
-
-            {!exampleAdvice && (
-              <>
-                <p className="about-hint">⏳ The first request may take a couple of minutes. The website works on render. This might happen when it stays idle for a while..</p>
-                <button
-                  type="button"
-                  className="info-example-btn"
-                  onClick={handleGetExampleAdvice}
-                  disabled={exampleAdviceLoading}
-                >
-                  {exampleAdviceLoading ? "Fetching recommendation…" : "Get example AI recommendation"}
-                </button>
-              </>
-            )}
-
-            {exampleAdviceError && <p className="error">{exampleAdviceError}</p>}
-
-            {exampleAdvice && (
-              <div className="example-advice-result">
-                <h3 className="example-advice-title">AI Recommendation</h3>
-                <AdviceRenderer text={exampleAdvice} />
-              </div>
-            )}
-          </div>
-          </>
-        ) : isAccountPage && token ? (
-          <div className="card account-card">
-            <h2 className="account-title">Account</h2>
-            <p className="account-subtitle">Logged in as <strong>{userName}</strong></p>
-
-            <div className="account-section">
-              <h3 className="account-section-title">Change Password</h3>
-              <form className="account-pw-form" onSubmit={handleChangePassword}>
-                <label className="account-field-label">
-                  Current password
-                  <input
-                    type="password"
-                    placeholder="Enter current password"
-                    value={pwOld}
-                    onChange={(e) => setPwOld(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
-                </label>
-                <label className="account-field-label">
-                  New password
-                  <input
-                    type="password"
-                    placeholder="At least 6 characters"
-                    value={pwNew}
-                    onChange={(e) => setPwNew(e.target.value)}
-                    required
-                    autoComplete="new-password"
-                  />
-                </label>
-                <label className="account-field-label">
-                  Confirm new password
-                  <input
-                    type="password"
-                    placeholder="Repeat new password"
-                    value={pwConfirm}
-                    onChange={(e) => setPwConfirm(e.target.value)}
-                    required
-                    autoComplete="new-password"
-                  />
-                </label>
-                {pwMessage && <p className="account-success">{pwMessage}</p>}
-                {pwError && <p className="account-error">{pwError}</p>}
-                <button type="submit" disabled={pwSaving}>
-                  {pwSaving ? "Saving…" : "Change password"}
-                </button>
-              </form>
-            </div>
-
-            <div className="account-section account-danger-zone">
-              <h3 className="account-section-title danger-title">Danger Zone</h3>
-              <p className="account-danger-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
-              <button
-                type="button"
-                className="danger"
-                onClick={() => {
-                  setDeleteAccountError("");
-                  setDeleteAccountPassword("");
-                  setIsDeleteAccountModalOpen(true);
-                }}
-              >
-                Delete my account
-              </button>
-            </div>
-          </div>
-        ) : isLoginPage && !token ? (
-          <div className="card auth-card">
-            <h2>{isRegister ? "Register" : "Login"}</h2>
-            <form onSubmit={handleAuthSubmit}>
-            {isRegister && (
-              <input
-                type="text"
-                placeholder="Name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-              />
-            )}
-
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-
-            <button type="submit" disabled={authLoading}>
-              {authLoading
-                ? isRegister
-                  ? "Creating account..."
-                  : "Logging in..."
-                : isRegister
-                  ? "Create account"
-                  : "Login"}
-            </button>
-            {authWaitHint && <p className="auth-wait-hint">{authWaitHint}</p>}
-          </form>
-
-          <button
-            className="secondary"
-            type="button"
-            disabled={authLoading}
-            onClick={() => {
-              setIsRegister((prev) => !prev);
-              setMessage("");
-              setError("");
-              setAuthWaitHint("");
-            }}
-          >
-            {isRegister ? "Already have an account? Login" : "No account? Register"}
-          </button>
-          <p className="auth-meta-hint">No email activation needed, throwaway emails can be used.</p>
-        </div>
-      ) : (
+      {/* ══════════════════════════════════════════════════════
+          NOT LOGGED IN — topbar + public pages
+          ══════════════════════════════════════════════════════ */}
+      {!token && (
         <>
-          {isProgramDetailsPage ? (
-            <div className="card">
-              <div className="details-header">
-                <h2>Program details</h2>
-                <button type="button" className="secondary" onClick={() => navigateTo("/")}>
-                  Back
-                </button>
-              </div>
+          <header className="topbar">
+            <button type="button" className="topbar-brand" onClick={() => navigateTo("/about")}>
+              Fitness Tracker
+            </button>
+            <nav className="topbar-nav">
+              <button type="button" className={`topbar-nav-btn${isLoginPage ? " active" : ""}`} onClick={() => navigateTo("/login")}>Login</button>
+              <button type="button" className={`topbar-nav-btn${isToolsPage ? " active" : ""}`} onClick={() => navigateTo("/tools")}>Tools</button>
+              <button type="button" className={`topbar-nav-btn${isAboutPage ? " active" : ""}`} onClick={() => navigateTo("/about")}>About</button>
+            </nav>
+            <button type="button" className="topbar-darkmode" onClick={() => setDarkMode((p) => !p)} title={darkMode ? "Light mode" : "Dark mode"}>
+              {darkMode ? "☀️" : "🌙"}
+            </button>
+          </header>
 
-              {!selectedProgram ? (
-                <p>Program not found.</p>
-              ) : (
-                <>
-                  <p>
-                    <strong>Title:</strong> {selectedProgram.title}
+          <div className="container">
+            {isToolsPage ? (
+              <FitnessTools />
+            ) : isAboutPage ? (
+              <>
+                <div className="card info-card">
+                  <p className="info-hero">💪</p>
+                  <h1 className="info-title">Fitness Tracker</h1>
+                  <p className="info-description">
+                    A simple but powerful fitness tracker that helps you build and manage your workout programs.
+                    Log your sessions, track your history, and get <strong>personalized AI recommendations</strong> tailored to your equipment.
                   </p>
-                  <p>
-                    <strong>Created:</strong>{" "}
-                    {new Date(selectedProgram.created_at).toLocaleString()}
-                  </p>
-                  <div className="detail-list">
-                    {normalizeProgramItems(selectedProgram.description).map((item, index) => (
-                      <div className="detail-item" key={`${selectedProgram.id}-${index}`}>
-                        <p>
-                          <strong>Workout:</strong> {item.name}
-                        </p>
-                        <p>
-                          <strong>Sets:</strong> {item.sets ?? 1}
-                        </p>
-                        <p>
-                          <strong>Reps:</strong> {item.repetitions}
-                        </p>
-                        <p>
-                          <strong>Weight:</strong> {item.weightKg} kg
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  <ul className="info-features">
+                    <li>📋 Create and manage custom workout programs</li>
+                    <li>📅 Log every session and track your history</li>
+                    <li>🤖 Get daily AI-powered workout advice</li>
+                    <li>🏋️ Works for gym, home, or bodyweight training</li>
+                  </ul>
+                  <button type="button" className="info-cta" onClick={() => { setIsRegister(true); navigateTo("/login"); }}>
+                    I want to try it →
+                  </button>
+                </div>
 
-                  <div className="date-tracking">
-                    <h3>Workout dates</h3>
-                    <div className="actions">
-                      <button
-                        type="button"
-                        onClick={() => handleAddWorkoutDate(selectedProgram.id, new Date().toISOString())}
-                      >
-                        I worked out today
-                      </button>
+                <div className="about-tiles">
+                  <div className="about-tile about-tile--blue"><span className="about-tile-icon">🔥</span><span className="about-tile-value">Streaks</span><span className="about-tile-label">Stay consistent</span></div>
+                  <div className="about-tile about-tile--teal"><span className="about-tile-icon">🏆</span><span className="about-tile-value">PRs</span><span className="about-tile-label">Beat your best</span></div>
+                  <div className="about-tile about-tile--purple"><span className="about-tile-icon">🤖</span><span className="about-tile-value">AI</span><span className="about-tile-label">Daily coaching</span></div>
+                  <div className="about-tile about-tile--amber"><span className="about-tile-icon">📊</span><span className="about-tile-value">Metrics</span><span className="about-tile-label">Track progress</span></div>
+                </div>
+
+                <div className="info-example">
+                  <h2 className="info-example-heading">See it in action</h2>
+                  <p className="info-example-sub">Here's an example home dumbbell program and what the AI recommends for it.</p>
+                  <div className="example-program-card">
+                    <div className="example-program-header">
+                      <strong>Home Dumbbell Full Body</strong>
+                      <span className="example-equipment-badge">Home Equipment: Dumbbells</span>
                     </div>
-
-                    <div className="manual-date-row">
-                      <input
-                        type="datetime-local"
-                        value={manualWorkoutDate}
-                        onChange={(event) => setManualWorkoutDate(event.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => {
-                          if (!manualWorkoutDate) {
-                            return;
-                          }
-
-                          const asIso = new Date(manualWorkoutDate).toISOString();
-                          handleAddWorkoutDate(selectedProgram.id, asIso);
-                          setManualWorkoutDate("");
-                        }}
-                      >
-                        Add date
-                      </button>
-                    </div>
-
-                    <ul className="date-list">
-                      {(Array.isArray(selectedProgram.workout_dates)
-                        ? [...selectedProgram.workout_dates].sort((a, b) => b.localeCompare(a))
-                        : []
-                      ).map((dateValue) => (
-                        <li key={dateValue}>
-                          <span>{formatDateTime(dateValue)}</span>
-                          <button
-                            type="button"
-                            className="danger"
-                            onClick={() => handleDeleteWorkoutDate(selectedProgram.id, dateValue)}
-                          >
-                            Delete
-                          </button>
-                        </li>
-                      ))}
+                    <ul className="example-exercises">
+                      <li>Floor Dumbbell Press — 3 × 10</li>
+                      <li>Dumbbell Row — 3 × 10</li>
+                      <li>Shoulder Press — 3 × 12</li>
+                      <li>Dumbbell Concentration Curls — 3 × 12</li>
+                      <li>Overhead Triceps Extension — 3 × 12</li>
+                      <li>Squats — 4 × 15</li>
+                      <li>Calf Raises — 3 × 20</li>
                     </ul>
                   </div>
-
-                  <RestTimer />
-                </>
-              )}
-            </div>
-          ) : isAdminPage && userRole !== "admin" ? (
-            <div className="card">
-              <p>You do not have permission to view this page.</p>
-            </div>
-          ) : isAdminPage ? (
-            <div className="card">
-              <h2>Admin Panel - Bulk Add Workouts</h2>
-              <form onSubmit={handleBulkImport}>
-                <textarea
-                  className="bulk-input"
-                  value={bulkJson}
-                  onChange={(event) => setBulkJson(event.target.value)}
-                />
-                <button type="submit">Import workouts in bulk</button>
-              </form>
-
-              {bulkResult && (
-                <div className="bulk-result">
-                  <p>Total: {bulkResult.total}</p>
-                  <p>Inserted: {bulkResult.insertedCount}</p>
-                  <p>Skipped: {bulkResult.skippedCount}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="card">
-                <div className="programs-header">
-                  <h2>Your programs</h2>
-                  <button
-                    type="button"
-                    className={isAddProgramOpen ? "secondary" : ""}
-                    onClick={() => {
-                      setIsAddProgramOpen((prev) => !prev);
-                      if (isAddProgramOpen) {
-                        setProgramItems([]);
-                        setProgramTitle("");
-                      }
-                    }}
-                  >
-                    {isAddProgramOpen ? "Cancel" : "+ New program"}
-                  </button>
-                </div>
-
-                {isAddProgramOpen && (
-                  <form onSubmit={(e) => { handleAddProgram(e); setIsAddProgramOpen(false); }} className="add-program-form">
-                    <input
-                      type="text"
-                      placeholder="Program title"
-                      value={programTitle}
-                      onChange={(event) => setProgramTitle(event.target.value)}
-                      required
-                    />
-                    <div className="dropdown-panel">
-                      <p className="field-hint">Workout selector</p>
-                      <div className="selector-actions">
-                        <SearchableWorkoutDropdown
-                          workouts={workouts}
-                          searchQuery={createWorkoutSearch}
-                          setSearchQuery={setCreateWorkoutSearch}
-                          onSelect={handleCreateWorkoutSelect}
-                          triggerLabel="Select workout"
-                        />
-                        <button
-                          type="button"
-                          className="secondary"
-                          onClick={() => setIsCreateCustomModalOpen(true)}
-                        >
-                          Add custom
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="program-items">
-                      {programItems.map((item, itemIndex) => (
-                        <div
-                          className="program-item"
-                          key={`${item.workoutId ?? "custom"}-${item.name}-${itemIndex}`}
-                        >
-                          <strong>{item.name}</strong>
-                          <div className="numbers-row">
-                            <label>
-                              <span className="field-hint">Sets</span>
-                              <input
-                                type="number"
-                                min="1"
-                                value={item.sets ?? 1}
-                                onChange={(event) =>
-                                  handleProgramItemChange(itemIndex, "sets", event.target.value)
-                                }
-                                placeholder="e.g. 3"
-                              />
-                            </label>
-                            <label>
-                              <span className="field-hint">Reps</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={item.repetitions}
-                                onChange={(event) =>
-                                  handleProgramItemChange(
-                                    itemIndex,
-                                    "repetitions",
-                                    event.target.value
-                                  )
-                                }
-                                placeholder="e.g. 10"
-                              />
-                            </label>
-                            <label>
-                              <span className="field-hint">Weight (kg)</span>
-                              <input
-                                type="number"
-                                min="0"
-                                value={item.weightKg}
-                                onChange={(event) =>
-                                  handleProgramItemChange(itemIndex, "weightKg", event.target.value)
-                                }
-                                placeholder="e.g. 60"
-                              />
-                            </label>
-                          </div>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => handleRemoveWorkoutFromProgram(itemIndex)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button type="submit">Save program</button>
-                  </form>
-                )}
-
-                {programs.length === 0 && !isAddProgramOpen ? (
-                  <p>No programs yet. Click "+ New program" to get started.</p>
-                ) : (
-                  <ul>
-                    {programs.map((program) => (
-                      <li key={program.id}>
-                        {editingProgramId === program.id ? (
-                          <div className="program-edit">
-                            <input
-                              type="text"
-                              value={editTitle}
-                              onChange={(event) => setEditTitle(event.target.value)}
-                              required
-                            />
-                            <div className="dropdown-panel">
-                              <p className="field-hint">Workout selector</p>
-                              <div className="selector-actions">
-                                <SearchableWorkoutDropdown
-                                  workouts={workouts}
-                                  searchQuery={editWorkoutSearch}
-                                  setSearchQuery={setEditWorkoutSearch}
-                                  onSelect={handleEditWorkoutSelect}
-                                  triggerLabel="Select workout"
-                                />
-                                <button
-                                  type="button"
-                                  className="secondary"
-                                  onClick={() => setIsEditCustomModalOpen(true)}
-                                >
-                                  Add custom
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="program-items">
-                              {editItems.map((item, itemIndex) => (
-                                <div
-                                  className="program-item"
-                                  key={`${item.workoutId ?? "custom"}-${item.name}-${itemIndex}`}
-                                >
-                                  <strong>{item.name}</strong>
-                                  <div className="numbers-row">
-                                    <label>
-                                      <span className="field-hint">Sets</span>
-                                      <input
-                                        type="number"
-                                        min="1"
-                                        value={item.sets ?? 1}
-                                        onChange={(event) =>
-                                          handleEditItemChange(itemIndex, "sets", event.target.value)
-                                        }
-                                        placeholder="e.g. 3"
-                                      />
-                                    </label>
-                                    <label>
-                                      <span className="field-hint">Reps</span>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        value={item.repetitions}
-                                        onChange={(event) =>
-                                          handleEditItemChange(
-                                            itemIndex,
-                                            "repetitions",
-                                            event.target.value
-                                          )
-                                        }
-                                        placeholder="e.g. 10"
-                                      />
-                                    </label>
-                                    <label>
-                                      <span className="field-hint">Weight (kg)</span>
-                                      <input
-                                        type="number"
-                                        min="0"
-                                        value={item.weightKg}
-                                        onChange={(event) =>
-                                          handleEditItemChange(
-                                            itemIndex,
-                                            "weightKg",
-                                            event.target.value
-                                          )
-                                        }
-                                        placeholder="e.g. 60"
-                                      />
-                                    </label>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className="secondary"
-                                    onClick={() => handleRemoveWorkoutFromEdit(itemIndex)}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="actions">
-                              <button type="button" onClick={() => handleSaveEdit(program.id)}>
-                                Save changes
-                              </button>
-                              <button type="button" className="secondary" onClick={cancelEditing}>
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="program-header-row">
-                              <strong>{program.title}</strong>
-                              {program.deleted && <span className="deleted-badge">Deleted</span>}
-                            </div>
-                            <ul className="program-readonly-items">
-                              {normalizeProgramItems(program.description).map((item, index) => (
-                                <li key={`${program.id}-${item.workoutId || item.name}-${index}`}>
-                                  {item.name} — {item.sets ?? 1}×{item.repetitions} reps @ {item.weightKg} kg
-                                </li>
-                              ))}
-                            </ul>
-                            <div className="actions">
-                              <button
-                                type="button"
-                                className="secondary"
-                                onClick={() => navigateTo(`/programs/${program.id}`)}
-                              >
-                                Details
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => startEditing(program)}
-                                disabled={program.deleted}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="danger"
-                                onClick={() => handleSoftDeleteProgram(program.id)}
-                                disabled={program.deleted}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </>
-          )}
-
-          {!isAdminPage && !isProgramDetailsPage && programs.length > 0 && (() => {
-            const allDates = [];
-            programs.forEach((p) => {
-              (p.workout_dates || []).forEach((d) => {
-                allDates.push({ date: d, program: p.title });
-              });
-            });
-            allDates.sort((a, b) => b.date.localeCompare(a.date));
-            return allDates.length > 0 ? (
-              <div className="card history-card">
-                <h2>Workout History</h2>
-                <ul className="history-list">
-                  {allDates.slice(0, 20).map((item, i) => (
-                    <li key={i} className="history-item">
-                      <span className="history-date">{new Date(item.date).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</span>
-                      <span className="history-program">{item.program}</span>
-                    </li>
-                  ))}
-                </ul>
-                {allDates.length > 20 && <p className="history-more">Showing 20 most recent of {allDates.length} total sessions.</p>}
-              </div>
-            ) : null;
-          })()}
-
-          {!isAdminPage && !isProgramDetailsPage && programs.length > 0 && (
-            <div className="card calendar-card">
-              <h2>Workout Calendar</h2>
-              <WorkoutCalendar programs={programs} />
-            </div>
-          )}
-
-          {!isAdminPage && !isProgramDetailsPage && (
-            <div className="card streaks-card">
-              <h2>Workout Streaks</h2>
-              <div className="streaks-grid">
-                <div className="streak-item">
-                  <span className="streak-number">{streaks.currentStreak}</span>
-                  <span className="streak-label">{streaks.currentStreak === 1 ? "day" : "days"} current streak</span>
-                  {streaks.currentStreak >= 7 && <span className="streak-badge">🔥</span>}
-                  {streaks.currentStreak >= 30 && <span className="streak-badge">⚡</span>}
-                </div>
-                <div className="streak-item">
-                  <span className="streak-number">{streaks.longestStreak}</span>
-                  <span className="streak-label">{streaks.longestStreak === 1 ? "day" : "days"} longest streak</span>
-                  {streaks.longestStreak >= 14 && <span className="streak-badge">🏆</span>}
-                </div>
-                <div className="streak-item">
-                  <span className="streak-number">{streaks.totalDays}</span>
-                  <span className="streak-label">total workout {streaks.totalDays === 1 ? "day" : "days"}</span>
-                </div>
-              </div>
-              {streaks.totalDays === 0 && (
-                <p className="streaks-empty">Log your first workout to start building your streak!</p>
-              )}
-            </div>
-          )}
-
-          {!isAdminPage && !isProgramDetailsPage && (
-            <div className="card pr-card">
-              <h2>Personal Records</h2>
-              <form className="pr-form" onSubmit={handleSavePersonalRecord}>
-                <input
-                  type="text"
-                  placeholder="Exercise name"
-                  value={prExerciseName}
-                  onChange={(e) => setPrExerciseName(e.target.value)}
-                  required
-                />
-                <div className="pr-numbers">
-                  <label>
-                    <span className="field-hint">Weight (kg)</span>
-                    <input
-                      type="number"
-                      min="0.1"
-                      step="0.1"
-                      placeholder="e.g. 100"
-                      value={prWeight}
-                      onChange={(e) => setPrWeight(e.target.value)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    <span className="field-hint">Reps</span>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="e.g. 5"
-                      value={prReps}
-                      onChange={(e) => setPrReps(e.target.value)}
-                    />
-                  </label>
-                  <button type="submit" disabled={prSaving}>
-                    {prSaving ? "Saving…" : "Log PR"}
-                  </button>
-                </div>
-              </form>
-              {prMessage && <p className="pr-feedback">{prMessage}</p>}
-              {personalRecords.length === 0 ? (
-                <p className="pr-empty">No personal records yet. Log your first PR above!</p>
-              ) : (
-                <ul className="pr-list">
-                  {personalRecords.map((pr) => (
-                    <li key={pr.id} className="pr-item">
-                      <div className="pr-item-info">
-                        <strong>{pr.exercise_name}</strong>
-                        <span>{pr.weight_kg} kg × {pr.reps} reps</span>
-                        <span className="pr-date">{new Date(pr.recorded_at).toLocaleDateString()}</span>
-                      </div>
-                      <button type="button" className="danger pr-delete" onClick={() => handleDeletePR(pr.id)}>
-                        ×
+                  {!exampleAdvice && (
+                    <>
+                      <p className="about-hint">⏳ The first request may take a couple of minutes. The website works on render.com and might be slow after idle periods.</p>
+                      <button type="button" className="info-example-btn" onClick={handleGetExampleAdvice} disabled={exampleAdviceLoading}>
+                        {exampleAdviceLoading ? "Fetching recommendation…" : "Get example AI recommendation"}
                       </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {!isAdminPage && !isProgramDetailsPage && (
-            <div className="card metrics-log-card">
-              <h2>Body Metrics Log</h2>
-              <form className="metrics-log-form" onSubmit={handleSaveMetricsEntry}>
-                <div className="metrics-log-inputs">
-                  <label>
-                    <span className="field-hint">Weight (kg)</span>
-                    <input
-                      type="number"
-                      min="20"
-                      max="500"
-                      step="0.1"
-                      placeholder="e.g. 75"
-                      value={logWeight}
-                      onChange={(e) => setLogWeight(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span className="field-hint">Body fat %</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="70"
-                      step="0.1"
-                      placeholder="e.g. 15"
-                      value={logBodyFat}
-                      onChange={(e) => setLogBodyFat(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span className="field-hint">Note</span>
-                    <input
-                      type="text"
-                      maxLength="250"
-                      placeholder="optional note"
-                      value={logNote}
-                      onChange={(e) => setLogNote(e.target.value)}
-                    />
-                  </label>
-                  <button type="submit" disabled={logSaving || (!logWeight && !logBodyFat)}>
-                    {logSaving ? "Logging…" : "Log entry"}
-                  </button>
-                </div>
-              </form>
-              <WeightChart data={metricsLog} />
-              {metricsLog.length === 0 ? (
-                <p className="metrics-log-empty">No entries yet. Start logging to track your progress over time!</p>
-              ) : (
-                <ul className="metrics-log-list">
-                  {metricsLog.map((entry) => (
-                    <li key={entry.id} className="metrics-log-item">
-                      <div className="metrics-log-item-info">
-                        <span className="metrics-log-date">{new Date(entry.logged_at).toLocaleDateString()}</span>
-                        {entry.weight_kg && <span><strong>{entry.weight_kg}</strong> kg</span>}
-                        {entry.body_fat_pct && <span><strong>{entry.body_fat_pct}</strong>% bf</span>}
-                        {entry.note && <span className="metrics-log-note">{entry.note}</span>}
-                      </div>
-                      <button type="button" className="danger pr-delete" onClick={() => handleDeleteMetricsEntry(entry.id)}>
-                        ×
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {!isAdminPage && (
-            <div className="card advice-card">
-              <div className="advice-box">
-                <div className="body-metrics-section">
-                  <h3>Body Metrics</h3>
-                  {metricsLoaded && !heightCm && !weightKg && !bodyFatPct && (
-                    <p className="metrics-hint">Add your height, weight, and body fat % for more personalized AI recommendations.</p>
+                    </>
                   )}
-                  <div className="metrics-row">
-                    <label>
-                      <span className="field-hint">Height (cm)</span>
-                      <input
-                        type="number"
-                        min="50"
-                        max="300"
-                        step="0.1"
-                        placeholder="e.g. 175"
-                        value={heightCm}
-                        onChange={(e) => setHeightCm(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      <span className="field-hint">Weight (kg)</span>
-                      <input
-                        type="number"
-                        min="20"
-                        max="500"
-                        step="0.1"
-                        placeholder="e.g. 70"
-                        value={weightKg}
-                        onChange={(e) => setWeightKg(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      <span className="field-hint">Body fat %</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max="70"
-                        step="0.1"
-                        placeholder="e.g. 15"
-                        value={bodyFatPct}
-                        onChange={(e) => setBodyFatPct(e.target.value)}
-                      />
-                    </label>
-                    <button type="button" onClick={handleSaveMetrics} disabled={metricsSaving}>
-                      {metricsSaving ? "Saving…" : "Save"}
-                    </button>
-                  </div>
-                </div>
-                <div className="equipment-selector">
-                  <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
-                  <select
-                    id="equipment-select"
-                    value={userEquipment}
-                    onChange={(e) => handleEquipmentChange(e.target.value)}
-                  >
-                    <option value="gym">Gym (full equipment)</option>
-                    <option value="dumbbells">Home (dumbbells only)</option>
-                    <option value="no equipment">No equipment (bodyweight)</option>
-                  </select>
-                </div>
-                <button type="button" onClick={handleGetDailyAdvice} disabled={adviceLoading}>
-                  {adviceLoading ? "Generating advice…" : "Get free daily workout advice"}
-                </button>
-                {adviceFeedback && (
-                  <div className="advice-limit-msg">
-                    <span className="advice-limit-icon">⏳</span>
-                    <span>{adviceFeedback}</span>
-                  </div>
-                )}
-                {dailyAdvice && (
-                  <div className="advice-result">
-                    <div className="advice-result-header">
-                      <h3 className="advice-result-title">Your Daily Advice</h3>
-                      <div className="advice-meta">
-                        {adviceSource && (
-                          <span className="advice-source-badge">
-                            {adviceSource === "cached" ? "📋 Reused" :
-                             adviceSource === "fallback" ? "🤖 Built-in" :
-                             adviceSource.startsWith("hf") ? "🧠 AI" : `🤖 ${adviceSource}`}
-                          </span>
-                        )}
-                        {adviceCachedAt && (
-                          <span className="advice-timestamp">
-                            {new Date(adviceCachedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        )}
-                      </div>
+                  {exampleAdviceError && <p className="error">{exampleAdviceError}</p>}
+                  {exampleAdvice && (
+                    <div className="example-advice-result">
+                      <h3 className="example-advice-title">AI Recommendation</h3>
+                      <AdviceRenderer text={exampleAdvice} />
                     </div>
-                    <AdviceRenderer text={dailyAdvice} />
-                  </div>
-                )}
+                  )}
+                </div>
+              </>
+            ) : isLoginPage ? (
+              <div className="card auth-card">
+                <h2>{isRegister ? "Register" : "Login"}</h2>
+                <form onSubmit={handleAuthSubmit}>
+                  {isRegister && (
+                    <input type="text" placeholder="Name" value={name}
+                      onChange={(e) => setName(e.target.value)} required />
+                  )}
+                  <input type="email" placeholder="Email" value={email}
+                    onChange={(e) => setEmail(e.target.value)} required />
+                  <input type="password" placeholder="Password" value={password}
+                    onChange={(e) => setPassword(e.target.value)} required />
+                  <button type="submit" disabled={authLoading}>
+                    {authLoading ? (isRegister ? "Creating account..." : "Logging in...") : (isRegister ? "Create account" : "Login")}
+                  </button>
+                  {authWaitHint && <p className="auth-wait-hint">{authWaitHint}</p>}
+                </form>
+                <button className="secondary" type="button" disabled={authLoading}
+                  onClick={() => { setIsRegister((p) => !p); setMessage(""); setError(""); setAuthWaitHint(""); }}>
+                  {isRegister ? "Already have an account? Login" : "No account? Register"}
+                </button>
+                <p className="auth-meta-hint">No email activation needed, throwaway emails can be used.</p>
               </div>
-            </div>
-          )}
+            ) : null}
+          </div>
         </>
       )}
 
+      {/* ══════════════════════════════════════════════════════
+          LOGGED IN — sidebar layout
+          ══════════════════════════════════════════════════════ */}
+      {token && (
+        <div className="app-layout">
+
+          {/* Mobile top strip */}
+          <div className="mobile-topbar">
+            <button type="button" className="hamburger-btn" aria-label="Toggle menu"
+              onClick={() => setIsSidebarOpen((p) => !p)}>
+              <span /><span /><span />
+            </button>
+            <span className="mobile-app-title">💪 Fitness Tracker</span>
+            <button type="button" className="topbar-darkmode" onClick={() => setDarkMode((p) => !p)}>
+              {darkMode ? "☀️" : "🌙"}
+            </button>
+          </div>
+
+          {/* Sidebar */}
+          <aside className={`sidebar${isSidebarOpen ? " sidebar--open" : ""}`}>
+            <div className="sidebar-logo" role="button" tabIndex={0}
+              onClick={() => navigateTo("/")} onKeyDown={(e) => e.key === "Enter" && navigateTo("/")}>
+              <span className="sidebar-logo-icon">💪</span>
+              <span className="sidebar-logo-text">Fitness Tracker</span>
+            </div>
+
+            <nav className="sidebar-nav">
+              <button type="button"
+                className={`sidebar-item${isProgramsPage || isProgramDetailsPage ? " active" : ""}`}
+                onClick={() => navigateTo("/")}>
+                <span className="sidebar-icon">📋</span><span>Programs</span>
+              </button>
+              <button type="button"
+                className={`sidebar-item${isProgressPage ? " active" : ""}`}
+                onClick={() => navigateTo("/progress")}>
+                <span className="sidebar-icon">📊</span><span>Progress</span>
+              </button>
+              <button type="button"
+                className={`sidebar-item${isAdvicePage ? " active" : ""}`}
+                onClick={() => navigateTo("/advice")}>
+                <span className="sidebar-icon">🤖</span><span>AI Advice</span>
+              </button>
+              <button type="button"
+                className={`sidebar-item${isToolsPage ? " active" : ""}`}
+                onClick={() => navigateTo("/tools")}>
+                <span className="sidebar-icon">🧰</span><span>Tools</span>
+              </button>
+            </nav>
+
+            <div className="sidebar-spacer" />
+
+            <div className="sidebar-bottom">
+              <div className="sidebar-divider" />
+              {userRole === "admin" && (
+                <button type="button"
+                  className={`sidebar-item${isAdminPage ? " active" : ""}`}
+                  onClick={() => navigateTo("/admin/workouts")}>
+                  <span className="sidebar-icon">🛡️</span><span>Admin</span>
+                </button>
+              )}
+              <button type="button"
+                className={`sidebar-item${isAccountPage ? " active" : ""}`}
+                onClick={() => navigateTo("/account")}>
+                <span className="sidebar-icon">⚙️</span><span>Account</span>
+              </button>
+              <button type="button" className="sidebar-item sidebar-darkmode-btn"
+                onClick={() => setDarkMode((p) => !p)}>
+                <span className="sidebar-icon">{darkMode ? "☀️" : "🌙"}</span>
+                <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>
+              </button>
+              <div className="sidebar-user-row">
+                <span className="sidebar-username">👤 {userName}</span>
+                <button type="button" className="sidebar-logout-btn" onClick={handleLogout}>Logout</button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Mobile overlay */}
+          {isSidebarOpen && <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)} />}
+
+          {/* ── Main content ── */}
+          <main className="main-content">
+            <div className="page-container">
+
+              {/* ─── Programs page ─── */}
+              {isProgramsPage && (
+                <>
+                  <div className="card">
+                    <div className="programs-header">
+                      <h2>Your Programs</h2>
+                      <button type="button" className={isAddProgramOpen ? "secondary" : ""}
+                        onClick={() => { setIsAddProgramOpen((p) => !p); if (isAddProgramOpen) { setProgramItems([]); setProgramTitle(""); } }}>
+                        {isAddProgramOpen ? "Cancel" : "+ New program"}
+                      </button>
+                    </div>
+
+                    {isAddProgramOpen && (
+                      <ProgramForm
+                        items={programItems} setItems={setProgramItems}
+                        title={programTitle} setTitle={setProgramTitle}
+                        onSubmit={(e) => { handleAddProgram(e); setIsAddProgramOpen(false); }}
+                        submitLabel="Save program"
+                        searchQuery={createWorkoutSearch} setSearchQuery={setCreateWorkoutSearch}
+                        onWorkoutSelect={handleCreateWorkoutSelect}
+                        onCustomOpen={() => setIsCreateCustomModalOpen(true)}
+                      />
+                    )}
+
+                    {programs.length === 0 && !isAddProgramOpen ? (
+                      <p>No programs yet. Click "+ New program" to get started.</p>
+                    ) : (
+                      <ul>
+                        {programs.map((program) => (
+                          <li key={program.id}>
+                            {editingProgramId === program.id ? (
+                              <div className="program-edit">
+                                <input type="text" value={editTitle}
+                                  onChange={(e) => setEditTitle(e.target.value)} required />
+                                <div className="dropdown-panel">
+                                  <p className="field-hint">Workout selector</p>
+                                  <div className="selector-actions">
+                                    <SearchableWorkoutDropdown workouts={workouts} searchQuery={editWorkoutSearch}
+                                      setSearchQuery={setEditWorkoutSearch} onSelect={handleEditWorkoutSelect} triggerLabel="Select workout" />
+                                    <button type="button" className="secondary" onClick={() => setIsEditCustomModalOpen(true)}>Add custom</button>
+                                  </div>
+                                </div>
+                                <div className="program-items">
+                                  {editItems.map((item, idx) => (
+                                    <div className="program-item" key={`${item.workoutId ?? "custom"}-${item.name}-${idx}`}>
+                                      <strong>{item.name}</strong>
+                                      <div className="numbers-row">
+                                        <label><span className="field-hint">Sets</span>
+                                          <input type="number" min="1" value={item.sets ?? 1}
+                                            onChange={(e) => handleEditItemChange(idx, "sets", e.target.value)} /></label>
+                                        <label><span className="field-hint">Reps</span>
+                                          <input type="number" min="0" value={item.repetitions}
+                                            onChange={(e) => handleEditItemChange(idx, "repetitions", e.target.value)} /></label>
+                                        <label><span className="field-hint">Weight (kg)</span>
+                                          <input type="number" min="0" value={item.weightKg}
+                                            onChange={(e) => handleEditItemChange(idx, "weightKg", e.target.value)} /></label>
+                                      </div>
+                                      <button type="button" className="secondary" onClick={() => handleRemoveWorkoutFromEdit(idx)}>Remove</button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="actions">
+                                  <button type="button" onClick={() => handleSaveEdit(program.id)}>Save changes</button>
+                                  <button type="button" className="secondary" onClick={cancelEditing}>Cancel</button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="program-header-row">
+                                  <strong>{program.title}</strong>
+                                  {program.deleted && <span className="deleted-badge">Deleted</span>}
+                                </div>
+                                <ul className="program-readonly-items">
+                                  {normalizeProgramItems(program.description).map((item, idx) => (
+                                    <li key={`${program.id}-${item.workoutId || item.name}-${idx}`}>
+                                      {item.name} — {item.sets ?? 1}×{item.repetitions} reps @ {item.weightKg} kg
+                                    </li>
+                                  ))}
+                                </ul>
+                                <div className="actions">
+                                  <button type="button" className="secondary" onClick={() => navigateTo(`/programs/${program.id}`)}>Details</button>
+                                  <button type="button" onClick={() => startEditing(program)} disabled={program.deleted}>Edit</button>
+                                  <button type="button" className="danger" onClick={() => handleSoftDeleteProgram(program.id)} disabled={program.deleted}>Delete</button>
+                                </div>
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Workout History */}
+                  {(() => {
+                    const allDates = [];
+                    programs.forEach((p) => (p.workout_dates || []).forEach((d) => allDates.push({ date: d, program: p.title })));
+                    allDates.sort((a, b) => b.date.localeCompare(a.date));
+                    return allDates.length > 0 ? (
+                      <div className="card history-card">
+                        <h2>Workout History</h2>
+                        <ul className="history-list">
+                          {allDates.slice(0, 20).map((item, i) => (
+                            <li key={i} className="history-item">
+                              <span className="history-date">
+                                {new Date(item.date).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
+                              </span>
+                              <span className="history-program">{item.program}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {allDates.length > 20 && <p className="history-more">Showing 20 most recent of {allDates.length} total sessions.</p>}
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* Workout Calendar */}
+                  {programs.length > 0 && (
+                    <div className="card calendar-card">
+                      <h2>Workout Calendar</h2>
+                      <WorkoutCalendar programs={programs} />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ─── Program Details page ─── */}
+              {isProgramDetailsPage && (
+                <div className="card">
+                  <div className="details-header">
+                    <h2>Program Details</h2>
+                    <button type="button" className="secondary" onClick={() => navigateTo("/")}>← Back</button>
+                  </div>
+                  {!selectedProgram ? (
+                    <p>Program not found.</p>
+                  ) : (
+                    <>
+                      <p><strong>Title:</strong> {selectedProgram.title}</p>
+                      <p><strong>Created:</strong> {new Date(selectedProgram.created_at).toLocaleString()}</p>
+                      <div className="detail-list">
+                        {normalizeProgramItems(selectedProgram.description).map((item, idx) => (
+                          <div className="detail-item" key={`${selectedProgram.id}-${idx}`}>
+                            <p><strong>Workout:</strong> {item.name}</p>
+                            <p><strong>Sets:</strong> {item.sets ?? 1}</p>
+                            <p><strong>Reps:</strong> {item.repetitions}</p>
+                            <p><strong>Weight:</strong> {item.weightKg} kg</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="date-tracking">
+                        <h3>Workout Dates</h3>
+                        <div className="actions">
+                          <button type="button" onClick={() => handleAddWorkoutDate(selectedProgram.id, new Date().toISOString())}>
+                            I worked out today
+                          </button>
+                        </div>
+                        <div className="manual-date-row">
+                          <input type="datetime-local" value={manualWorkoutDate}
+                            onChange={(e) => setManualWorkoutDate(e.target.value)} />
+                          <button type="button" className="secondary"
+                            onClick={() => {
+                              if (!manualWorkoutDate) return;
+                              handleAddWorkoutDate(selectedProgram.id, new Date(manualWorkoutDate).toISOString());
+                              setManualWorkoutDate("");
+                            }}>Add date</button>
+                        </div>
+                        <ul className="date-list">
+                          {(Array.isArray(selectedProgram.workout_dates)
+                            ? [...selectedProgram.workout_dates].sort((a, b) => b.localeCompare(a))
+                            : []
+                          ).map((dateValue) => (
+                            <li key={dateValue}>
+                              <span>{formatDateTime(dateValue)}</span>
+                              <button type="button" className="danger"
+                                onClick={() => handleDeleteWorkoutDate(selectedProgram.id, dateValue)}>Delete</button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <RestTimer />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Progress page ─── */}
+              {isProgressPage && (
+                <>
+                  <div className="card streaks-card">
+                    <h2>Workout Streaks</h2>
+                    <div className="streaks-grid">
+                      <div className="streak-item">
+                        <span className="streak-number">{streaks.currentStreak}</span>
+                        <span className="streak-label">{streaks.currentStreak === 1 ? "day" : "days"} current streak</span>
+                        {streaks.currentStreak >= 7 && <span className="streak-badge">🔥</span>}
+                        {streaks.currentStreak >= 30 && <span className="streak-badge">⚡</span>}
+                      </div>
+                      <div className="streak-item">
+                        <span className="streak-number">{streaks.longestStreak}</span>
+                        <span className="streak-label">{streaks.longestStreak === 1 ? "day" : "days"} longest streak</span>
+                        {streaks.longestStreak >= 14 && <span className="streak-badge">🏆</span>}
+                      </div>
+                      <div className="streak-item">
+                        <span className="streak-number">{streaks.totalDays}</span>
+                        <span className="streak-label">total workout {streaks.totalDays === 1 ? "day" : "days"}</span>
+                      </div>
+                    </div>
+                    {streaks.totalDays === 0 && <p className="streaks-empty">Log your first workout to start building your streak!</p>}
+                  </div>
+
+                  <div className="card pr-card">
+                    <h2>Personal Records</h2>
+                    <form className="pr-form" onSubmit={handleSavePersonalRecord}>
+                      <input type="text" placeholder="Exercise name" value={prExerciseName}
+                        onChange={(e) => setPrExerciseName(e.target.value)} required />
+                      <div className="pr-numbers">
+                        <label><span className="field-hint">Weight (kg)</span>
+                          <input type="number" min="0.1" step="0.1" placeholder="e.g. 100"
+                            value={prWeight} onChange={(e) => setPrWeight(e.target.value)} required />
+                        </label>
+                        <label><span className="field-hint">Reps</span>
+                          <input type="number" min="1" placeholder="e.g. 5"
+                            value={prReps} onChange={(e) => setPrReps(e.target.value)} />
+                        </label>
+                        <button type="submit" disabled={prSaving}>{prSaving ? "Saving…" : "Log PR"}</button>
+                      </div>
+                    </form>
+                    {prMessage && <p className="pr-feedback">{prMessage}</p>}
+                    {personalRecords.length === 0 ? (
+                      <p className="pr-empty">No personal records yet. Log your first PR above!</p>
+                    ) : (
+                      <ul className="pr-list">
+                        {personalRecords.map((pr) => (
+                          <li key={pr.id} className="pr-item">
+                            <div className="pr-item-info">
+                              <strong>{pr.exercise_name}</strong>
+                              <span>{pr.weight_kg} kg × {pr.reps} reps</span>
+                              <span className="pr-date">{new Date(pr.recorded_at).toLocaleDateString()}</span>
+                            </div>
+                            <button type="button" className="danger pr-delete" onClick={() => handleDeletePR(pr.id)}>×</button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="card metrics-log-card">
+                    <h2>Body Metrics Log</h2>
+                    <form className="metrics-log-form" onSubmit={handleSaveMetricsEntry}>
+                      <div className="metrics-log-inputs">
+                        <label><span className="field-hint">Weight (kg)</span>
+                          <input type="number" min="20" max="500" step="0.1" placeholder="e.g. 75"
+                            value={logWeight} onChange={(e) => setLogWeight(e.target.value)} />
+                        </label>
+                        <label><span className="field-hint">Body fat %</span>
+                          <input type="number" min="1" max="70" step="0.1" placeholder="e.g. 15"
+                            value={logBodyFat} onChange={(e) => setLogBodyFat(e.target.value)} />
+                        </label>
+                        <label><span className="field-hint">Note</span>
+                          <input type="text" maxLength="250" placeholder="optional note"
+                            value={logNote} onChange={(e) => setLogNote(e.target.value)} />
+                        </label>
+                        <button type="submit" disabled={logSaving || (!logWeight && !logBodyFat)}>
+                          {logSaving ? "Logging…" : "Log entry"}
+                        </button>
+                      </div>
+                    </form>
+                    <WeightChart data={metricsLog} />
+                    {metricsLog.length === 0 ? (
+                      <p className="metrics-log-empty">No entries yet. Start logging to track your progress over time!</p>
+                    ) : (
+                      <ul className="metrics-log-list">
+                        {metricsLog.map((entry) => (
+                          <li key={entry.id} className="metrics-log-item">
+                            <div className="metrics-log-item-info">
+                              <span className="metrics-log-date">{new Date(entry.logged_at).toLocaleDateString()}</span>
+                              {entry.weight_kg && <span><strong>{entry.weight_kg}</strong> kg</span>}
+                              {entry.body_fat_pct && <span><strong>{entry.body_fat_pct}</strong>% bf</span>}
+                              {entry.note && <span className="metrics-log-note">{entry.note}</span>}
+                            </div>
+                            <button type="button" className="danger pr-delete" onClick={() => handleDeleteMetricsEntry(entry.id)}>×</button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* ─── AI Advice page ─── */}
+              {isAdvicePage && (
+                <div className="card advice-card">
+                  <div className="advice-box">
+                    <div className="body-metrics-section">
+                      <h3>Body Metrics</h3>
+                      {metricsLoaded && !heightCm && !weightKg && !bodyFatPct && (
+                        <p className="metrics-hint">Add your height, weight, and body fat % for more personalized AI recommendations.</p>
+                      )}
+                      <div className="metrics-row">
+                        <label><span className="field-hint">Height (cm)</span>
+                          <input type="number" min="50" max="300" step="0.1" placeholder="e.g. 175"
+                            value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
+                        </label>
+                        <label><span className="field-hint">Weight (kg)</span>
+                          <input type="number" min="20" max="500" step="0.1" placeholder="e.g. 70"
+                            value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
+                        </label>
+                        <label><span className="field-hint">Body fat %</span>
+                          <input type="number" min="1" max="70" step="0.1" placeholder="e.g. 15"
+                            value={bodyFatPct} onChange={(e) => setBodyFatPct(e.target.value)} />
+                        </label>
+                        <button type="button" onClick={handleSaveMetrics} disabled={metricsSaving}>
+                          {metricsSaving ? "Saving…" : "Save metrics"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="equipment-selector">
+                      <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
+                      <select id="equipment-select" value={userEquipment}
+                        onChange={(e) => handleEquipmentChange(e.target.value)}>
+                        <option value="gym">Gym (full equipment)</option>
+                        <option value="dumbbells">Home (dumbbells only)</option>
+                        <option value="no equipment">No equipment (bodyweight)</option>
+                      </select>
+                    </div>
+                    <button type="button" onClick={handleGetDailyAdvice} disabled={adviceLoading}>
+                      {adviceLoading ? "Generating advice…" : "Get free daily workout advice"}
+                    </button>
+                    {adviceFeedback && (
+                      <div className="advice-limit-msg">
+                        <span className="advice-limit-icon">⏳</span>
+                        <span>{adviceFeedback}</span>
+                      </div>
+                    )}
+                    {dailyAdvice && (
+                      <div className="advice-result">
+                        <div className="advice-result-header">
+                          <h3 className="advice-result-title">Your Daily Advice</h3>
+                          <div className="advice-meta">
+                            {adviceSource && (
+                              <span className="advice-source-badge">
+                                {adviceSource === "cached" ? "📋 Reused" : adviceSource === "fallback" ? "🤖 Built-in" : adviceSource.startsWith("hf") ? "🧠 AI" : `🤖 ${adviceSource}`}
+                              </span>
+                            )}
+                            {adviceCachedAt && (
+                              <span className="advice-timestamp">
+                                {new Date(adviceCachedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <AdviceRenderer text={dailyAdvice} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Account page ─── */}
+              {isAccountPage && (
+                <div className="card account-card">
+                  <h2 className="account-title">Account</h2>
+                  <p className="account-subtitle">Logged in as <strong>{userName}</strong></p>
+                  <div className="account-section">
+                    <h3 className="account-section-title">Change Password</h3>
+                    <form className="account-pw-form" onSubmit={handleChangePassword}>
+                      <label className="account-field-label">Current password
+                        <input type="password" placeholder="Enter current password" value={pwOld}
+                          onChange={(e) => setPwOld(e.target.value)} required autoComplete="current-password" />
+                      </label>
+                      <label className="account-field-label">New password
+                        <input type="password" placeholder="At least 6 characters" value={pwNew}
+                          onChange={(e) => setPwNew(e.target.value)} required autoComplete="new-password" />
+                      </label>
+                      <label className="account-field-label">Confirm new password
+                        <input type="password" placeholder="Repeat new password" value={pwConfirm}
+                          onChange={(e) => setPwConfirm(e.target.value)} required autoComplete="new-password" />
+                      </label>
+                      {pwMessage && <p className="account-success">{pwMessage}</p>}
+                      {pwError && <p className="account-error">{pwError}</p>}
+                      <button type="submit" disabled={pwSaving}>{pwSaving ? "Saving…" : "Change password"}</button>
+                    </form>
+                  </div>
+                  <div className="account-section account-danger-zone">
+                    <h3 className="account-section-title danger-title">Danger Zone</h3>
+                    <p className="account-danger-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
+                    <button type="button" className="danger"
+                      onClick={() => { setDeleteAccountError(""); setDeleteAccountPassword(""); setIsDeleteAccountModalOpen(true); }}>
+                      Delete my account
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Admin page ─── */}
+              {isAdminPage && (
+                <div className="card">
+                  {userRole !== "admin" ? (
+                    <p>You do not have permission to view this page.</p>
+                  ) : (
+                    <>
+                      <h2>Admin Panel — Bulk Add Workouts</h2>
+                      <form onSubmit={handleBulkImport}>
+                        <textarea className="bulk-input" value={bulkJson}
+                          onChange={(e) => setBulkJson(e.target.value)} />
+                        <button type="submit">Import workouts in bulk</button>
+                      </form>
+                      {bulkResult && (
+                        <div className="bulk-result">
+                          <p>Total: {bulkResult.total}</p>
+                          <p>Inserted: {bulkResult.insertedCount}</p>
+                          <p>Skipped: {bulkResult.skippedCount}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Tools page (logged in) ─── */}
+              {isToolsPage && <FitnessTools />}
+
+            </div>
+          </main>
+        </div>
+      )}
+
+      {/* ── Global messages ── */}
       {message && <p className="message">{message}</p>}
       {error && <p className="error">{error}</p>}
 
+      {/* ── Modals ── */}
       {isCreateCustomModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
             <h3>Add custom workout</h3>
-            <textarea
-              placeholder="Write custom workout name"
-              value={createCustomWorkoutText}
-              onChange={(event) => setCreateCustomWorkoutText(event.target.value)}
-            />
+            <textarea placeholder="Write custom workout name" value={createCustomWorkoutText}
+              onChange={(e) => setCreateCustomWorkoutText(e.target.value)} />
             <div className="modal-actions">
-              <button type="button" onClick={handleAddCustomWorkoutToProgram}>
-                Add
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setIsCreateCustomModalOpen(false);
-                  setCreateCustomWorkoutText("");
-                }}
-              >
-                Cancel
-              </button>
+              <button type="button" onClick={handleAddCustomWorkoutToProgram}>Add</button>
+              <button type="button" className="secondary"
+                onClick={() => { setIsCreateCustomModalOpen(false); setCreateCustomWorkoutText(""); }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -2438,25 +1672,12 @@ function App() {
         <div className="modal-overlay">
           <div className="modal-card">
             <h3>Add custom workout</h3>
-            <textarea
-              placeholder="Write custom workout name"
-              value={editCustomWorkoutText}
-              onChange={(event) => setEditCustomWorkoutText(event.target.value)}
-            />
+            <textarea placeholder="Write custom workout name" value={editCustomWorkoutText}
+              onChange={(e) => setEditCustomWorkoutText(e.target.value)} />
             <div className="modal-actions">
-              <button type="button" onClick={handleAddCustomWorkoutToEdit}>
-                Add
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setIsEditCustomModalOpen(false);
-                  setEditCustomWorkoutText("");
-                }}
-              >
-                Cancel
-              </button>
+              <button type="button" onClick={handleAddCustomWorkoutToEdit}>Add</button>
+              <button type="button" className="secondary"
+                onClick={() => { setIsEditCustomModalOpen(false); setEditCustomWorkoutText(""); }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -2467,42 +1688,21 @@ function App() {
           <div className="modal-card delete-account-modal">
             <h3 className="delete-modal-title">Delete Account</h3>
             <p className="delete-modal-desc">This will permanently delete your account, all programs, personal records, and body metrics. This action <strong>cannot be undone</strong>.</p>
-            <label className="account-field-label">
-              Confirm your password
-              <input
-                type="password"
-                placeholder="Enter your current password"
-                value={deleteAccountPassword}
-                onChange={(e) => setDeleteAccountPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+            <label className="account-field-label">Confirm your password
+              <input type="password" placeholder="Enter your current password" value={deleteAccountPassword}
+                onChange={(e) => setDeleteAccountPassword(e.target.value)} autoComplete="current-password" />
             </label>
             {deleteAccountError && <p className="account-error">{deleteAccountError}</p>}
             <div className="modal-actions">
-              <button
-                type="button"
-                className="danger"
-                onClick={handleDeleteAccount}
-                disabled={deleteAccountLoading}
-              >
+              <button type="button" className="danger" onClick={handleDeleteAccount} disabled={deleteAccountLoading}>
                 {deleteAccountLoading ? "Deleting…" : "Yes, delete my account"}
               </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  setIsDeleteAccountModalOpen(false);
-                  setDeleteAccountPassword("");
-                  setDeleteAccountError("");
-                }}
-              >
-                Cancel
-              </button>
+              <button type="button" className="secondary"
+                onClick={() => { setIsDeleteAccountModalOpen(false); setDeleteAccountPassword(""); setDeleteAccountError(""); }}>Cancel</button>
             </div>
           </div>
         </div>
       )}
-    </div>
     </>
   );
 }
