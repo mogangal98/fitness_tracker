@@ -80,6 +80,41 @@ router.put("/me/metrics", authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/users/me — delete account (requires password confirmation)
+router.delete("/me", authMiddleware, async (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ message: "Password is required to delete your account" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT password_hash FROM users WHERE id = $1",
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isValid = await bcrypt.compare(password, result.rows[0].password_hash);
+    if (!isValid) {
+      return res.status(401).json({ message: "Incorrect password" });
+    }
+
+    await pool.query("DELETE FROM body_metrics_log WHERE user_id = $1", [req.user.id]);
+    await pool.query("DELETE FROM personal_records WHERE user_id = $1", [req.user.id]);
+    await pool.query("DELETE FROM fitness_programs WHERE user_id = $1", [req.user.id]);
+    await pool.query("DELETE FROM users WHERE id = $1", [req.user.id]);
+
+    return res.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Delete account error:", error.message);
+    return res.status(500).json({ message: "Server error while deleting account" });
+  }
+});
+
 // PUT /api/users/me/password — change password
 router.put("/me/password", authMiddleware, async (req, res) => {
   const { oldPassword, newPassword } = req.body;

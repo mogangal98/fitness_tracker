@@ -274,3 +274,16 @@ export async function changePassword(token, { oldPassword, newPassword }) {
 
   return parseResponse(response);
 }
+
+export async function deleteAccount(token, { password }) {
+  const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ password }),
+  });
+
+  return parseResponse(response);
+}

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   addProgramWorkoutDate,
   bulkCreateWorkouts,
   changePassword,
   createProgram,
+  deleteAccount,
   deleteBodyMetricsEntry,
   deleteProgramWorkoutDate,
   deletePersonalRecord,
@@ -336,6 +337,123 @@ function BmiGauge({ bmi }) {
   );
 }
 
+function WeightChart({ data }) {
+  const sorted = useMemo(() =>
+    [...data]
+      .filter((e) => e.weight_kg != null)
+      .sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at)),
+    [data]
+  );
+
+  if (sorted.length < 2) return null;
+
+  const W = 320, H = 120;
+  const padL = 36, padR = 12, padT = 12, padB = 22;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  const weights = sorted.map((e) => parseFloat(e.weight_kg));
+  const minW = Math.min(...weights);
+  const maxW = Math.max(...weights);
+  const range = maxW - minW || 1;
+
+  const pts = sorted.map((e, i) => ({
+    x: padL + (i / (sorted.length - 1)) * innerW,
+    y: padT + innerH - ((parseFloat(e.weight_kg) - minW) / range) * innerH,
+    weight: parseFloat(e.weight_kg),
+    date: new Date(e.logged_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+  }));
+
+  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+  const areaPath = `${linePath} L ${pts[pts.length - 1].x.toFixed(1)} ${(padT + innerH).toFixed(1)} L ${pts[0].x.toFixed(1)} ${(padT + innerH).toFixed(1)} Z`;
+
+  return (
+    <div className="weight-chart-wrap">
+      <p className="weight-chart-label">Weight over time (kg)</p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="weight-chart-svg">
+        <defs>
+          <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#4f72f5" stopOpacity="0.32" />
+            <stop offset="100%" stopColor="#4f72f5" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <line x1={padL} y1={padT} x2={padL + innerW} y2={padT} stroke="currentColor" strokeOpacity="0.1" strokeWidth="1" />
+        <line x1={padL} y1={padT + innerH} x2={padL + innerW} y2={padT + innerH} stroke="currentColor" strokeOpacity="0.1" strokeWidth="1" />
+        <text x={padL - 4} y={padT + 4} textAnchor="end" fontSize="8" fill="currentColor" opacity="0.5">{maxW}</text>
+        <text x={padL - 4} y={padT + innerH + 4} textAnchor="end" fontSize="8" fill="currentColor" opacity="0.5">{minW}</text>
+        <path d={areaPath} fill="url(#wGrad)" />
+        <path d={linePath} stroke="#4f72f5" strokeWidth="2" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3" fill="#4f72f5" />
+        ))}
+        <text x={pts[0].x} y={H - 3} textAnchor="middle" fontSize="7" fill="currentColor" opacity="0.5">{pts[0].date}</text>
+        <text x={pts[pts.length - 1].x} y={H - 3} textAnchor="middle" fontSize="7" fill="currentColor" opacity="0.5">{pts[pts.length - 1].date}</text>
+      </svg>
+    </div>
+  );
+}
+
+function WorkoutCalendar({ programs }) {
+  const today = new Date();
+  const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const workoutDayMap = useMemo(() => {
+    const map = {};
+    programs.forEach((p) => {
+      (p.workout_dates || []).forEach((d) => {
+        const key = d.slice(0, 10);
+        if (!map[key]) map[key] = [];
+        map[key].push(p.title);
+      });
+    });
+    return map;
+  }, [programs]);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = viewDate.toLocaleString("default", { month: "long", year: "numeric" });
+
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const cells = [];
+  for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div className="workout-calendar">
+      <div className="cal-header">
+        <button type="button" className="cal-nav" onClick={() => setViewDate(new Date(year, month - 1, 1))}>‹</button>
+        <span className="cal-month-label">{monthName}</span>
+        <button type="button" className="cal-nav" onClick={() => setViewDate(new Date(year, month + 1, 1))}>›</button>
+      </div>
+      <div className="cal-weekdays">
+        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => <span key={d}>{d}</span>)}
+      </div>
+      <div className="cal-grid">
+        {cells.map((day, i) => {
+          if (!day) return <div key={`e-${i}`} className="cal-cell cal-cell--empty" />;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const workouts = workoutDayMap[dateStr];
+          const isToday = dateStr === todayStr;
+          return (
+            <div
+              key={dateStr}
+              className={`cal-cell${isToday ? " cal-cell--today" : ""}${workouts ? " cal-cell--worked" : ""}`}
+              title={workouts ? workouts.join(", ") : undefined}
+            >
+              <span>{day}</span>
+              {workouts && <span className="cal-dot" />}
+            </div>
+          );
+        })}
+      </div>
+      <p className="cal-legend">Dots = workout logged. Hover for program name.</p>
+    </div>
+  );
+}
+
 function FitnessTools() {
   // ── BMI ──────────────────────────────────────────────────
   const [bmiHeight, setBmiHeight] = useState("");
@@ -607,8 +725,9 @@ function App() {
 ]`);
   const [bulkResult, setBulkResult] = useState(null);
   const [manualWorkoutDate, setManualWorkoutDate] = useState("");
-  const [dailyAdvice, setDailyAdvice] = useState("");
-  const [adviceSource, setAdviceSource] = useState("");
+  const [dailyAdvice, setDailyAdvice] = useState(() => localStorage.getItem("lastAdvice") || "");
+  const [adviceSource, setAdviceSource] = useState(() => localStorage.getItem("lastAdviceSource") || "");
+  const [adviceCachedAt, setAdviceCachedAt] = useState(() => localStorage.getItem("lastAdviceDate") || "");
   const [adviceFeedback, setAdviceFeedback] = useState("");
   const [userEquipment, setUserEquipment] = useState(localStorage.getItem("userEquipment") || "gym");
   const [isAddProgramOpen, setIsAddProgramOpen] = useState(false);
@@ -642,6 +761,16 @@ function App() {
   const [pwMessage, setPwMessage] = useState("");
   const [pwError, setPwError] = useState("");
 
+  const [darkMode, setDarkMode] = useState(() => {
+    const stored = localStorage.getItem("darkMode") === "true";
+    if (stored) document.documentElement.classList.add("dark");
+    return stored;
+  });
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+  const [deleteAccountError, setDeleteAccountError] = useState("");
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
+
   useEffect(() => {
     const onPopState = () => {
       setCurrentPath(window.location.pathname);
@@ -652,6 +781,15 @@ function App() {
       window.removeEventListener("popstate", onPopState);
     };
   }, []);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("darkMode", darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     if (!isAboutPage) return;
@@ -828,6 +966,27 @@ function App() {
       setPwError(err.message);
     } finally {
       setPwSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!deleteAccountPassword) {
+      setDeleteAccountError("Please enter your password to confirm");
+      return;
+    }
+    setDeleteAccountLoading(true);
+    setDeleteAccountError("");
+    try {
+      await deleteAccount(token, { password: deleteAccountPassword });
+      localStorage.removeItem("lastAdvice");
+      localStorage.removeItem("lastAdviceSource");
+      localStorage.removeItem("lastAdviceDate");
+      setIsDeleteAccountModalOpen(false);
+      handleLogout();
+    } catch (err) {
+      setDeleteAccountError(err.message);
+    } finally {
+      setDeleteAccountLoading(false);
     }
   }
 
@@ -1156,13 +1315,21 @@ function App() {
 
     try {
       const result = await getDailyAdvice(token);
-      setDailyAdvice(result.advice || "No advice returned");
-      setAdviceSource(result.source || "unknown");
+      const advice = result.advice || "No advice returned";
+      const source = result.source || "unknown";
+      const now = new Date().toISOString();
+      setDailyAdvice(advice);
+      setAdviceSource(source);
+      setAdviceCachedAt(now);
+      localStorage.setItem("lastAdvice", advice);
+      localStorage.setItem("lastAdviceSource", source);
+      localStorage.setItem("lastAdviceDate", now);
     } catch (err) {
-      if (err.status === 429 || (err.message && (err.message.includes("daily advice") || err.message.includes("already received")))) {
-        setAdviceFeedback("You've used all your free advice for today. Come back tomorrow!");
+      const msg = err.message || "";
+      if (err.status === 429 || msg.includes("daily advice") || msg.includes("already received") || msg.includes("limit")) {
+        setAdviceFeedback("You have reached today's advice limit. Your quota resets at midnight UTC — come back tomorrow!");
       } else {
-        setError(err.message);
+        setError(msg || "Failed to get advice. Please try again.");
       }
     } finally {
       setAdviceLoading(false);
@@ -1252,9 +1419,15 @@ function App() {
     setUserName("");
     setUserRole("user");
     setPrograms([]);
+    setDailyAdvice("");
+    setAdviceSource("");
+    setAdviceCachedAt("");
     localStorage.removeItem("token");
     localStorage.removeItem("userName");
     localStorage.removeItem("userRole");
+    localStorage.removeItem("lastAdvice");
+    localStorage.removeItem("lastAdviceSource");
+    localStorage.removeItem("lastAdviceDate");
     navigateTo("/about");
   }
 
@@ -1319,6 +1492,15 @@ function App() {
             About
           </button>
         </nav>
+
+        <button
+          type="button"
+          className="topbar-darkmode"
+          onClick={() => setDarkMode((prev) => !prev)}
+          title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {darkMode ? "☀️" : "🌙"}
+        </button>
 
         {token && (
           <div className="topbar-right">
@@ -1475,6 +1657,22 @@ function App() {
                   {pwSaving ? "Saving…" : "Change password"}
                 </button>
               </form>
+            </div>
+
+            <div className="account-section account-danger-zone">
+              <h3 className="account-section-title danger-title">Danger Zone</h3>
+              <p className="account-danger-desc">Permanently delete your account and all associated data. This cannot be undone.</p>
+              <button
+                type="button"
+                className="danger"
+                onClick={() => {
+                  setDeleteAccountError("");
+                  setDeleteAccountPassword("");
+                  setIsDeleteAccountModalOpen(true);
+                }}
+              >
+                Delete my account
+              </button>
             </div>
           </div>
         ) : isLoginPage && !token ? (
@@ -1921,6 +2119,37 @@ function App() {
             </>
           )}
 
+          {!isAdminPage && !isProgramDetailsPage && programs.length > 0 && (() => {
+            const allDates = [];
+            programs.forEach((p) => {
+              (p.workout_dates || []).forEach((d) => {
+                allDates.push({ date: d, program: p.title });
+              });
+            });
+            allDates.sort((a, b) => b.date.localeCompare(a.date));
+            return allDates.length > 0 ? (
+              <div className="card history-card">
+                <h2>Workout History</h2>
+                <ul className="history-list">
+                  {allDates.slice(0, 20).map((item, i) => (
+                    <li key={i} className="history-item">
+                      <span className="history-date">{new Date(item.date).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</span>
+                      <span className="history-program">{item.program}</span>
+                    </li>
+                  ))}
+                </ul>
+                {allDates.length > 20 && <p className="history-more">Showing 20 most recent of {allDates.length} total sessions.</p>}
+              </div>
+            ) : null;
+          })()}
+
+          {!isAdminPage && !isProgramDetailsPage && programs.length > 0 && (
+            <div className="card calendar-card">
+              <h2>Workout Calendar</h2>
+              <WorkoutCalendar programs={programs} />
+            </div>
+          )}
+
           {!isAdminPage && !isProgramDetailsPage && (
             <div className="card streaks-card">
               <h2>Workout Streaks</h2>
@@ -2052,6 +2281,7 @@ function App() {
                   </button>
                 </div>
               </form>
+              <WeightChart data={metricsLog} />
               {metricsLog.length === 0 ? (
                 <p className="metrics-log-empty">No entries yet. Start logging to track your progress over time!</p>
               ) : (
@@ -2139,10 +2369,31 @@ function App() {
                 <button type="button" onClick={handleGetDailyAdvice} disabled={adviceLoading}>
                   {adviceLoading ? "Generating advice…" : "Get free daily workout advice"}
                 </button>
-                {adviceFeedback && <p>{adviceFeedback}</p>}
+                {adviceFeedback && (
+                  <div className="advice-limit-msg">
+                    <span className="advice-limit-icon">⏳</span>
+                    <span>{adviceFeedback}</span>
+                  </div>
+                )}
                 {dailyAdvice && (
                   <div className="advice-result">
-                    <h3 className="advice-result-title">Your Daily Advice</h3>
+                    <div className="advice-result-header">
+                      <h3 className="advice-result-title">Your Daily Advice</h3>
+                      <div className="advice-meta">
+                        {adviceSource && (
+                          <span className="advice-source-badge">
+                            {adviceSource === "cached" ? "📋 Reused" :
+                             adviceSource === "fallback" ? "🤖 Built-in" :
+                             adviceSource.startsWith("hf") ? "🧠 AI" : `🤖 ${adviceSource}`}
+                          </span>
+                        )}
+                        {adviceCachedAt && (
+                          <span className="advice-timestamp">
+                            {new Date(adviceCachedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <AdviceRenderer text={dailyAdvice} />
                   </div>
                 )}
@@ -2202,6 +2453,47 @@ function App() {
                 onClick={() => {
                   setIsEditCustomModalOpen(false);
                   setEditCustomWorkoutText("");
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteAccountModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card delete-account-modal">
+            <h3 className="delete-modal-title">Delete Account</h3>
+            <p className="delete-modal-desc">This will permanently delete your account, all programs, personal records, and body metrics. This action <strong>cannot be undone</strong>.</p>
+            <label className="account-field-label">
+              Confirm your password
+              <input
+                type="password"
+                placeholder="Enter your current password"
+                value={deleteAccountPassword}
+                onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </label>
+            {deleteAccountError && <p className="account-error">{deleteAccountError}</p>}
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="danger"
+                onClick={handleDeleteAccount}
+                disabled={deleteAccountLoading}
+              >
+                {deleteAccountLoading ? "Deleting…" : "Yes, delete my account"}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  setIsDeleteAccountModalOpen(false);
+                  setDeleteAccountPassword("");
+                  setDeleteAccountError("");
                 }}
               >
                 Cancel
