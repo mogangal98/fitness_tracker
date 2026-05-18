@@ -2443,6 +2443,48 @@ html.dark .date-list li {
   transition: background 0.15s;
 }
 
+.cal-cell--worked {
+  cursor: pointer;
+}
+
+.cal-cell--worked:hover {
+  background: rgba(52, 211, 153, 0.28);
+  transform: scale(1.08);
+}
+
+.cal-cell--today.cal-cell--worked:hover {
+  background: rgba(79, 114, 245, 0.35);
+}
+
+/* Custom tooltip on worked-out days */
+.cal-cell[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: rgba(15, 23, 42, 0.92);
+  color: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 50;
+  max-width: 200px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.3;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.cal-cell[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
 .cal-cell--empty {
   background: transparent;
 }
@@ -2515,6 +2557,28 @@ html.dark .date-list li {
   font-weight: 600;
   color: var(--text-main);
   text-align: right;
+}
+
+.history-delete-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  box-shadow: none;
+}
+
+.history-delete-btn:hover {
+  color: var(--btn-danger);
+  background: rgba(239, 68, 68, 0.1);
+  transform: none;
+  box-shadow: none;
 }
 
 .history-more {
@@ -2628,6 +2692,65 @@ html.dark .advice-limit-msg {
   font-size: 0.7rem;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.advice-guest-notice {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.2rem;
+  background: rgba(79, 114, 245, 0.08);
+  border: 1px solid rgba(79, 114, 245, 0.22);
+  border-radius: 10px;
+  margin-bottom: 1.4rem;
+}
+
+.advice-guest-notice-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.advice-guest-notice strong {
+  display: block;
+  font-size: 1rem;
+  color: var(--text-main);
+  margin-bottom: 0.35rem;
+}
+
+.advice-guest-notice p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+html.dark .advice-guest-notice {
+  background: rgba(79, 114, 245, 0.1);
+  border-color: rgba(79, 114, 245, 0.3);
+}
+
+.advice-guest-example-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.advice-generic-disclaimer {
+  padding: 0.6rem 0.9rem;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #ca8a04;
+  line-height: 1.4;
+  margin-bottom: 0.25rem;
+}
+
+html.dark .advice-generic-disclaimer {
+  color: #fbbf24;
+  background: rgba(234, 179, 8, 0.08);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2914,4 +3037,166 @@ html.dark .sidebar {
 .calendar-card .container,
 .calendar-card {
   overflow: visible;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GUEST MODE
+   ═══════════════════════════════════════════════════════════ */
+
+.guest-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-main);
+}
+
+.guest-banner-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+.guest-banner-text { flex: 1; }
+
+.guest-banner-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #f59e0b;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.guest-banner-link:hover { color: #fbbf24; }
+
+html.dark .guest-banner {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+/* Sidebar create-account CTA for guests */
+.sidebar-signup-cta {
+  color: #fbbf24 !important;
+  font-weight: 600 !important;
+}
+
+.sidebar-signup-cta:hover {
+  background: rgba(251, 191, 36, 0.12) !important;
+}
+
+/* Landing page CTA buttons */
+.info-cta-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.info-cta-guest {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.78);
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.info-cta-guest:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+/* Hero "Try it free" variant — big red attention-grabber */
+.info-cta-guest--hero {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  border: none;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  padding: 0.9rem 2rem;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(220, 38, 38, 0.45);
+  letter-spacing: -0.01em;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.info-cta-guest--hero:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  border: none;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(220, 38, 38, 0.6);
+  filter: brightness(1.08);
+}
+
+/* Uniform program card action buttons */
+.program-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.program-action-btn {
+  flex: 1;
+  min-width: 72px;
+  max-width: 120px;
+  text-align: center;
+  padding: 0.38rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.program-checkin-btn {
+  background: #166534;
+  color: #fff;
+  border: none;
+}
+
+.program-checkin-btn:hover:not(:disabled) {
+  background: #15803d;
+  box-shadow: none;
+  transform: none;
+}
+
+html.dark .program-checkin-btn {
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+html.dark .program-checkin-btn:hover:not(:disabled) {
+  background: #166534;
+}
+
+/* Auth page guest divider + hint */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 0.25rem 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+.auth-guest-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  text-align: center;
 }

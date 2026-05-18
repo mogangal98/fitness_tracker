@@ -226,10 +226,10 @@ function BmiGauge({ bmi }) {
 }
 
 function WeightChart({ data }) {
-  const sorted = useMemo(() =>
-    [...data].filter((e) => e.weight_kg != null).sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at)),
-    [data]
-  );
+  const sorted = useMemo(() => {
+    const dateOf = (e) => e.logged_at || e.recorded_at || "";
+    return [...data].filter((e) => e.weight_kg != null).sort((a, b) => new Date(dateOf(a)) - new Date(dateOf(b)));
+  }, [data]);
 
   if (sorted.length < 2) return null;
 
@@ -246,7 +246,7 @@ function WeightChart({ data }) {
   const pts = sorted.map((e, i) => ({
     x: padL + (i / (sorted.length - 1)) * innerW,
     y: padT + innerH - ((parseFloat(e.weight_kg) - minW) / range) * innerH,
-    date: new Date(e.logged_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    date: new Date(e.logged_at || e.recorded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
   }));
 
   const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
@@ -322,7 +322,7 @@ function WorkoutCalendar({ programs }) {
           return (
             <div key={dateStr}
               className={`cal-cell${isToday ? " cal-cell--today" : ""}${workouts ? " cal-cell--worked" : ""}`}
-              title={workouts ? workouts.join(", ") : undefined}>
+              data-tooltip={workouts ? workouts.join(", ") : undefined}>
               <span>{day}</span>
               {workouts && <span className="cal-dot" />}
             </div>
@@ -397,8 +397,8 @@ function FitnessTools() {
 
   return (
     <div className="tools-page">
-      <h1 className="tools-title">Fitness Calculators</h1>
-      <p className="tools-subtitle">Free tools — no account needed.</p>
+      <h1 className="tools-title">Fitness Tools</h1>
+      <p className="tools-subtitle"></p>
       <div className="tools-grid">
         <div className="tool-card">
           <div className="tool-card-header tool-card-header--blue">
@@ -490,6 +490,94 @@ function FitnessTools() {
   );
 }
 
+const GUEST_WORKOUTS = [
+  { id: "g1",  name: "Bench Press",                muscle_group: "Chest" },
+  { id: "g2",  name: "Incline Dumbbell Press",      muscle_group: "Chest" },
+  { id: "g3",  name: "Push-Up",                     muscle_group: "Chest" },
+  { id: "g4",  name: "Dumbbell Fly",                muscle_group: "Chest" },
+  { id: "g5",  name: "Pull-Up",                     muscle_group: "Back" },
+  { id: "g6",  name: "Barbell Row",                 muscle_group: "Back" },
+  { id: "g7",  name: "Lat Pulldown",                muscle_group: "Back" },
+  { id: "g8",  name: "Dumbbell Row",                muscle_group: "Back" },
+  { id: "g9",  name: "Deadlift",                    muscle_group: "Back" },
+  { id: "g10", name: "Overhead Press",              muscle_group: "Shoulders" },
+  { id: "g11", name: "Dumbbell Shoulder Press",     muscle_group: "Shoulders" },
+  { id: "g12", name: "Lateral Raise",               muscle_group: "Shoulders" },
+  { id: "g13", name: "Face Pull",                   muscle_group: "Shoulders" },
+  { id: "g14", name: "Barbell Curl",                muscle_group: "Biceps" },
+  { id: "g15", name: "Dumbbell Curl",               muscle_group: "Biceps" },
+  { id: "g16", name: "Hammer Curl",                 muscle_group: "Biceps" },
+  { id: "g17", name: "Tricep Pushdown",             muscle_group: "Triceps" },
+  { id: "g18", name: "Skull Crusher",               muscle_group: "Triceps" },
+  { id: "g19", name: "Overhead Tricep Extension",   muscle_group: "Triceps" },
+  { id: "g20", name: "Squat",                       muscle_group: "Quads" },
+  { id: "g21", name: "Leg Press",                   muscle_group: "Quads" },
+  { id: "g22", name: "Lunge",                       muscle_group: "Quads" },
+  { id: "g23", name: "Goblet Squat",                muscle_group: "Quads" },
+  { id: "g24", name: "Bulgarian Split Squat",       muscle_group: "Quads" },
+  { id: "g25", name: "Romanian Deadlift",           muscle_group: "Hamstrings" },
+  { id: "g26", name: "Leg Curl",                    muscle_group: "Hamstrings" },
+  { id: "g27", name: "Hip Thrust",                  muscle_group: "Glutes" },
+  { id: "g28", name: "Calf Raise",                  muscle_group: "Calves" },
+  { id: "g29", name: "Plank",                       muscle_group: "Core" },
+  { id: "g30", name: "Crunch",                      muscle_group: "Core" },
+  { id: "g31", name: "Leg Raise",                   muscle_group: "Core" },
+  { id: "g32", name: "Russian Twist",               muscle_group: "Core" },
+  { id: "g33", name: "Cable Fly",                   muscle_group: "Chest" },
+  { id: "g34", name: "Seated Cable Row",            muscle_group: "Back" },
+  { id: "g35", name: "Decline Push-Up",             muscle_group: "Chest" },
+];
+
+function getGuestData() {
+  try { return JSON.parse(localStorage.getItem("guestData") || "{}"); }
+  catch { return {}; }
+}
+
+function saveGuestData(patch) {
+  localStorage.setItem("guestData", JSON.stringify({ ...getGuestData(), ...patch }));
+}
+
+function ProgramForm({ workouts, items, setItems, title, setTitle, onSubmit, submitLabel, searchQuery, setSearchQuery, onWorkoutSelect, onCustomOpen }) {
+  return (
+    <form onSubmit={onSubmit} className="add-program-form">
+      <input type="text" placeholder="Program title" value={title}
+        onChange={(e) => setTitle(e.target.value)} required />
+      <div className="dropdown-panel">
+        <p className="field-hint">Workout selector</p>
+        <div className="selector-actions">
+          <SearchableWorkoutDropdown workouts={workouts} searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery} onSelect={onWorkoutSelect} triggerLabel="Select workout" />
+          <button type="button" className="secondary" onClick={onCustomOpen}>Add custom</button>
+        </div>
+      </div>
+      <div className="program-items">
+        {items.map((item, idx) => (
+          <div className="program-item" key={`${item.workoutId ?? "custom"}-${item.name}-${idx}`}>
+            <strong>{item.name}</strong>
+            <div className="numbers-row">
+              <label><span className="field-hint">Sets</span>
+                <input type="number" min="1" value={item.sets ?? 1}
+                  onChange={(e) => { const p = parseInt(e.target.value, 10); const s = isNaN(p) || p < 0 ? 0 : p; setItems(prev => prev.map((it, i) => i === idx ? { ...it, sets: s } : it)); }} placeholder="3" />
+              </label>
+              <label><span className="field-hint">Reps</span>
+                <input type="number" min="0" value={item.repetitions}
+                  onChange={(e) => { const p = parseInt(e.target.value, 10); const s = isNaN(p) || p < 0 ? 0 : p; setItems(prev => prev.map((it, i) => i === idx ? { ...it, repetitions: s } : it)); }} placeholder="10" />
+              </label>
+              <label><span className="field-hint">Weight (kg)</span>
+                <input type="number" min="0" value={item.weightKg}
+                  onChange={(e) => { const p = parseInt(e.target.value, 10); const s = isNaN(p) || p < 0 ? 0 : p; setItems(prev => prev.map((it, i) => i === idx ? { ...it, weightKg: s } : it)); }} placeholder="60" />
+              </label>
+            </div>
+            <button type="button" className="secondary"
+              onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))}>Remove</button>
+          </div>
+        ))}
+      </div>
+      <button type="submit">{submitLabel}</button>
+    </form>
+  );
+}
+
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
@@ -497,7 +585,7 @@ function App() {
   const isProgramDetailsPage = Boolean(detailsMatch);
   const programDetailsId = detailsMatch ? Number(detailsMatch[1]) : null;
 
-  const isAboutPage = currentPath === "/about" || (currentPath === "/" && !localStorage.getItem("token"));
+  const isAboutPage = currentPath === "/about" || (currentPath === "/" && !localStorage.getItem("token") && localStorage.getItem("guestMode") !== "true");
   const isLoginPage = currentPath === "/login";
   const isToolsPage = currentPath === "/tools";
   const isAccountPage = currentPath === "/account";
@@ -513,8 +601,12 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem("guestMode") === "true");
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [userName, setUserName] = useState(localStorage.getItem("userName") || "");
+  const [userName, setUserName] = useState(() => {
+    if (localStorage.getItem("guestMode") === "true") return "Guest";
+    return localStorage.getItem("userName") || "";
+  });
   const [userRole, setUserRole] = useState(localStorage.getItem("userRole") || "user");
   const [programs, setPrograms] = useState([]);
   const [workouts, setWorkouts] = useState([]);
@@ -649,9 +741,84 @@ function App() {
     try { setMetricsLog(await getBodyMetricsLog(t)); } catch { /* non-critical */ }
   }
 
+  function computeGuestStreaks(programs) {
+    const allDates = new Set();
+    for (const p of programs) {
+      for (const d of (Array.isArray(p.workout_dates) ? p.workout_dates : [])) {
+        allDates.add(new Date(d).toISOString().slice(0, 10));
+      }
+    }
+    const sorted = [...allDates].sort();
+    const totalDays = sorted.length;
+    if (totalDays === 0) { setStreaks({ currentStreak: 0, longestStreak: 0, totalDays: 0 }); return; }
+    let longest = 1, run = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      const diff = (new Date(sorted[i]) - new Date(sorted[i - 1])) / 86400000;
+      if (diff === 1) { run++; if (run > longest) longest = run; } else run = 1;
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yestStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const last = sorted[sorted.length - 1];
+    let currentStreak = 0;
+    if (last === todayStr || last === yestStr) {
+      currentStreak = 1;
+      for (let i = sorted.length - 2; i >= 0; i--) {
+        if ((new Date(sorted[i + 1]) - new Date(sorted[i])) / 86400000 === 1) currentStreak++;
+        else break;
+      }
+    }
+    setStreaks({ currentStreak, longestStreak: Math.max(longest, currentStreak), totalDays });
+  }
+
+  function loadGuestData() {
+    const gd = getGuestData();
+    const progs = gd.programs || [];
+    setPrograms(progs);
+    setWorkouts(GUEST_WORKOUTS);
+    setPersonalRecords(gd.personalRecords || []);
+    setMetricsLog(gd.metricsLog || []);
+    setUserEquipment(gd.equipment || "gym");
+    setUserName("Guest");
+    if (gd.bodyMetrics) {
+      setHeightCm(String(gd.bodyMetrics.height_cm || ""));
+      setWeightKg(String(gd.bodyMetrics.weight_kg || ""));
+      setBodyFatPct(String(gd.bodyMetrics.body_fat_pct || ""));
+    }
+    computeGuestStreaks(progs);
+    setMetricsLoaded(true);
+  }
+
+  function handleStartGuest() {
+    localStorage.setItem("guestMode", "true");
+    setIsGuest(true);
+    loadGuestData();
+    navigateTo("/");
+  }
+
+  function handleExitGuest() {
+    localStorage.removeItem("guestMode");
+    setIsGuest(false);
+    setUserName(""); setUserRole("user"); setPrograms([]);
+    setPersonalRecords([]); setMetricsLog([]);
+    setDailyAdvice(""); setAdviceSource(""); setAdviceCachedAt("");
+    navigateTo("/");
+  }
+
+  useEffect(() => { if (isGuest) loadGuestData(); }, []); // restore guest data on page refresh
+
   async function handleSavePersonalRecord(e) {
     e.preventDefault();
     setPrSaving(true); setPrMessage(""); setError("");
+    if (isGuest) {
+      const rec = { id: Date.now(), exercise_name: prExerciseName.trim(), weight_kg: parseFloat(prWeight), reps: parseInt(prReps, 10) || 1, recorded_at: new Date().toISOString() };
+      const gd = getGuestData();
+      const updated = [rec, ...(gd.personalRecords || [])];
+      saveGuestData({ ...gd, personalRecords: updated });
+      setPersonalRecords(updated);
+      setPrMessage(`PR saved: ${rec.exercise_name} ${rec.weight_kg} kg × ${rec.reps} reps`);
+      setPrExerciseName(""); setPrWeight(""); setPrReps("");
+      setPrSaving(false); return;
+    }
     try {
       const result = await savePersonalRecord(token, {
         exercise_name: prExerciseName.trim(),
@@ -669,6 +836,12 @@ function App() {
 
   async function handleDeletePR(id) {
     setError("");
+    if (isGuest) {
+      const gd = getGuestData();
+      const updated = (gd.personalRecords || []).filter((r) => r.id !== id);
+      saveGuestData({ ...gd, personalRecords: updated });
+      setPersonalRecords(updated); return;
+    }
     try { await deletePersonalRecord(token, id); setPersonalRecords((prev) => prev.filter((r) => r.id !== id)); }
     catch (err) { setError(err.message); }
   }
@@ -676,6 +849,16 @@ function App() {
   async function handleSaveMetricsEntry(e) {
     e.preventDefault();
     setLogSaving(true); setError(""); setMessage("");
+    if (isGuest) {
+      const entry = { id: Date.now(), weight_kg: logWeight.trim() ? parseFloat(logWeight) : null, body_fat_pct: logBodyFat.trim() ? parseFloat(logBodyFat) : null, note: logNote.trim() || null, logged_at: new Date().toISOString() };
+      const gd = getGuestData();
+      const updated = [entry, ...(gd.metricsLog || [])];
+      saveGuestData({ ...gd, metricsLog: updated });
+      setMetricsLog(updated);
+      setLogWeight(""); setLogBodyFat(""); setLogNote("");
+      setMessage("Body metrics entry logged.");
+      setLogSaving(false); return;
+    }
     try {
       const entry = await saveBodyMetricsEntry(token, {
         weight_kg: logWeight.trim() ? parseFloat(logWeight) : null,
@@ -691,6 +874,12 @@ function App() {
 
   async function handleDeleteMetricsEntry(id) {
     setError("");
+    if (isGuest) {
+      const gd = getGuestData();
+      const updated = (gd.metricsLog || []).filter((e) => e.id !== id);
+      saveGuestData({ ...gd, metricsLog: updated });
+      setMetricsLog(updated); return;
+    }
     try { await deleteBodyMetricsEntry(token, id); setMetricsLog((prev) => prev.filter((e) => e.id !== id)); }
     catch (err) { setError(err.message); }
   }
@@ -746,6 +935,8 @@ function App() {
         setIsRegister(false); setPassword(""); return;
       }
       const data = await loginUser({ email, password });
+      localStorage.removeItem("guestMode");
+      setIsGuest(false);
       setToken(data.token);
       setUserName(data.user.name);
       setUserRole(data.user.role || "user");
@@ -761,6 +952,15 @@ function App() {
     event.preventDefault();
     setError(""); setMessage("");
     if (programItems.length === 0) { setError("Add at least one workout to the program"); return; }
+    if (isGuest) {
+      const prog = { id: Date.now(), title: programTitle, description: programItems, workout_dates: [], created_at: new Date().toISOString() };
+      const gd = getGuestData();
+      const updated = [prog, ...(gd.programs || [])];
+      saveGuestData({ ...gd, programs: updated });
+      setPrograms(updated);
+      setProgramTitle(""); setProgramItems([]); setCreateCustomWorkoutText("");
+      setMessage("Program saved."); return;
+    }
     try {
       const created = await createProgram(token, { title: programTitle, description: programItems });
       setPrograms((prev) => [created, ...prev]);
@@ -788,7 +988,7 @@ function App() {
 
   function handleCreateWorkoutSelect(value) {
     if (!value) return;
-    const w = workouts.find((workout) => workout.id === Number(value));
+    const w = workouts.find((workout) => String(workout.id) === String(value));
     if (w) handleAddWorkoutToProgram(w);
   }
 
@@ -833,7 +1033,7 @@ function App() {
 
   function handleEditWorkoutSelect(value) {
     if (!value) return;
-    const w = workouts.find((workout) => workout.id === Number(value));
+    const w = workouts.find((workout) => String(workout.id) === String(value));
     if (w) handleAddWorkoutToEdit(w);
   }
 
@@ -850,6 +1050,13 @@ function App() {
   async function handleSaveEdit(programId) {
     setError(""); setMessage("");
     if (editItems.length === 0) { setError("Program must include at least one workout"); return; }
+    if (isGuest) {
+      const updatedPrograms = programs.map((p) => p.id === programId ? { ...p, title: editTitle, description: editItems } : p);
+      const gd = getGuestData();
+      saveGuestData({ ...gd, programs: updatedPrograms });
+      setPrograms(updatedPrograms);
+      setMessage("Program updated."); cancelEditing(); return;
+    }
     try {
       const updated = await updateProgram(token, programId, { title: editTitle, description: editItems });
       setPrograms((prev) => prev.map((p) => p.id === programId ? updated : p));
@@ -872,6 +1079,16 @@ function App() {
   async function handleSoftDeleteProgram(programId) {
     setError(""); setMessage("");
     if (!window.confirm("Are you sure you want to delete this program?")) return;
+    if (isGuest) {
+      const gd = getGuestData();
+      const updated = (gd.programs || []).filter((p) => p.id !== programId);
+      saveGuestData({ ...gd, programs: updated });
+      setPrograms(updated);
+      setMessage("Program deleted.");
+      if (editingProgramId === programId) cancelEditing();
+      if (programDetailsId === programId) navigateTo("/");
+      return;
+    }
     try {
       await softDeleteProgram(token, programId);
       setPrograms((prev) => prev.filter((p) => p.id !== programId));
@@ -893,6 +1110,16 @@ function App() {
 
   async function handleGetDailyAdvice() {
     setError(""); setMessage(""); setAdviceFeedback(""); setAdviceLoading(true);
+    if (isGuest) {
+      try {
+        const result = await getExampleAdvice();
+        const advice = result.advice || "No advice returned";
+        const now = new Date().toISOString();
+        setDailyAdvice(advice); setAdviceSource("example"); setAdviceCachedAt(now);
+      } catch (err) { setError(err.message || "Failed to get advice."); }
+      finally { setAdviceLoading(false); }
+      return;
+    }
     try {
       const result = await getDailyAdvice(token);
       const advice = result.advice || "No advice returned";
@@ -914,6 +1141,20 @@ function App() {
 
   async function handleAddWorkoutDate(programId, dateValue) {
     setError(""); setMessage("");
+    if (isGuest) {
+      const dateStr = new Date(dateValue).toISOString();
+      const updatedPrograms = programs.map((p) => {
+        if (p.id !== programId) return p;
+        const dates = Array.isArray(p.workout_dates) ? p.workout_dates : [];
+        if (dates.includes(dateStr)) return p;
+        return { ...p, workout_dates: [...dates, dateStr] };
+      });
+      const gd = getGuestData();
+      saveGuestData({ ...gd, programs: updatedPrograms });
+      setPrograms(updatedPrograms);
+      computeGuestStreaks(updatedPrograms);
+      setMessage("Workout date recorded."); return;
+    }
     try {
       const updated = await addProgramWorkoutDate(token, programId, dateValue);
       setPrograms((prev) => prev.map((p) => p.id === programId ? updated : p));
@@ -923,6 +1164,17 @@ function App() {
 
   async function handleDeleteWorkoutDate(programId, dateValue) {
     setError(""); setMessage("");
+    if (isGuest) {
+      const updatedPrograms = programs.map((p) => {
+        if (p.id !== programId) return p;
+        return { ...p, workout_dates: (Array.isArray(p.workout_dates) ? p.workout_dates : []).filter((d) => d !== dateValue) };
+      });
+      const gd = getGuestData();
+      saveGuestData({ ...gd, programs: updatedPrograms });
+      setPrograms(updatedPrograms);
+      computeGuestStreaks(updatedPrograms);
+      setMessage("Workout date removed."); return;
+    }
     try {
       const updated = await deleteProgramWorkoutDate(token, programId, dateValue);
       setPrograms((prev) => prev.map((p) => p.id === programId ? updated : p));
@@ -932,6 +1184,7 @@ function App() {
 
   async function handleEquipmentChange(newEquipment) {
     setUserEquipment(newEquipment);
+    if (isGuest) { saveGuestData({ ...getGuestData(), equipment: newEquipment }); return; }
     localStorage.setItem("userEquipment", newEquipment);
     try { await updateEquipment(token, newEquipment); setMessage(`Equipment updated to "${newEquipment}".`); }
     catch (err) { setError(err.message); }
@@ -939,6 +1192,12 @@ function App() {
 
   async function handleSaveMetrics() {
     setError(""); setMessage(""); setMetricsSaving(true);
+    if (isGuest) {
+      const gd = getGuestData();
+      saveGuestData({ ...gd, bodyMetrics: { height_cm: heightCm, weight_kg: weightKg, body_fat_pct: bodyFatPct } });
+      setMessage("Body metrics updated.");
+      setMetricsSaving(false); return;
+    }
     try {
       const payload = {};
       if (heightCm.trim()) payload.height_cm = parseFloat(heightCm);
@@ -965,6 +1224,7 @@ function App() {
   }
 
   function handleLogout() {
+    if (isGuest) { handleExitGuest(); return; }
     setToken(""); setUserName(""); setUserRole("user"); setPrograms([]);
     setDailyAdvice(""); setAdviceSource(""); setAdviceCachedAt("");
     localStorage.removeItem("token"); localStorage.removeItem("userName");
@@ -976,51 +1236,6 @@ function App() {
   const selectedProgram = isProgramDetailsPage ? programs.find((p) => p.id === programDetailsId) : null;
 
   /* ─────────────────────────────────────────────────────────────
-     SHARED JSX FRAGMENTS
-     ───────────────────────────────────────────────────────────── */
-
-  function ProgramForm({ items, setItems, title, setTitle, onSubmit, submitLabel, searchQuery, setSearchQuery, onWorkoutSelect, onCustomOpen }) {
-    return (
-      <form onSubmit={onSubmit} className="add-program-form">
-        <input type="text" placeholder="Program title" value={title}
-          onChange={(e) => setTitle(e.target.value)} required />
-        <div className="dropdown-panel">
-          <p className="field-hint">Workout selector</p>
-          <div className="selector-actions">
-            <SearchableWorkoutDropdown workouts={workouts} searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery} onSelect={onWorkoutSelect} triggerLabel="Select workout" />
-            <button type="button" className="secondary" onClick={onCustomOpen}>Add custom</button>
-          </div>
-        </div>
-        <div className="program-items">
-          {items.map((item, idx) => (
-            <div className="program-item" key={`${item.workoutId ?? "custom"}-${item.name}-${idx}`}>
-              <strong>{item.name}</strong>
-              <div className="numbers-row">
-                <label><span className="field-hint">Sets</span>
-                  <input type="number" min="1" value={item.sets ?? 1}
-                    onChange={(e) => { const p = parseInt(e.target.value,10); const s = isNaN(p)||p<0?0:p; setItems(prev=>prev.map((it,i)=>i===idx?{...it,sets:s}:it)); }} placeholder="3" />
-                </label>
-                <label><span className="field-hint">Reps</span>
-                  <input type="number" min="0" value={item.repetitions}
-                    onChange={(e) => { const p = parseInt(e.target.value,10); const s = isNaN(p)||p<0?0:p; setItems(prev=>prev.map((it,i)=>i===idx?{...it,repetitions:s}:it)); }} placeholder="10" />
-                </label>
-                <label><span className="field-hint">Weight (kg)</span>
-                  <input type="number" min="0" value={item.weightKg}
-                    onChange={(e) => { const p = parseInt(e.target.value,10); const s = isNaN(p)||p<0?0:p; setItems(prev=>prev.map((it,i)=>i===idx?{...it,weightKg:s}:it)); }} placeholder="60" />
-                </label>
-              </div>
-              <button type="button" className="secondary"
-                onClick={() => setItems(prev=>prev.filter((_,i)=>i!==idx))}>Remove</button>
-            </div>
-          ))}
-        </div>
-        <button type="submit">{submitLabel}</button>
-      </form>
-    );
-  }
-
-  /* ─────────────────────────────────────────────────────────────
      RENDER
      ───────────────────────────────────────────────────────────── */
 
@@ -1029,7 +1244,7 @@ function App() {
       {/* ══════════════════════════════════════════════════════
           NOT LOGGED IN — topbar + public pages
           ══════════════════════════════════════════════════════ */}
-      {!token && (
+      {!token && !isGuest && (
         <>
           <header className="topbar">
             <button type="button" className="topbar-brand" onClick={() => navigateTo("/about")}>
@@ -1063,9 +1278,14 @@ function App() {
                     <li>🤖 Get daily AI-powered workout advice</li>
                     <li>🏋️ Works for gym, home, or bodyweight training</li>
                   </ul>
-                  <button type="button" className="info-cta" onClick={() => { setIsRegister(true); navigateTo("/login"); }}>
-                    I want to try it →
-                  </button>
+                  <div className="info-cta-group">
+                    <button type="button" className="info-cta-guest info-cta-guest--hero" onClick={handleStartGuest}>
+                      Try it free. No Login needed
+                    </button>
+                    <button type="button" className="info-cta" onClick={() => { setIsRegister(true); navigateTo("/login"); }}>
+                      Create free account →
+                    </button>
+                  </div>
                 </div>
 
                 <div className="about-tiles">
@@ -1132,6 +1352,11 @@ function App() {
                   {isRegister ? "Already have an account? Login" : "No account? Register"}
                 </button>
                 <p className="auth-meta-hint">No email activation needed, throwaway emails can be used.</p>
+                <div className="auth-divider"><span>or</span></div>
+                <button type="button" className="info-cta-guest" onClick={handleStartGuest}>
+                  Continue as guest (no account needed)
+                </button>
+                <p className="auth-guest-hint">Guest data is saved in your browser only — not on the server.</p>
               </div>
             ) : null}
           </div>
@@ -1139,9 +1364,9 @@ function App() {
       )}
 
       {/* ══════════════════════════════════════════════════════
-          LOGGED IN — sidebar layout
+          LOGGED IN / GUEST — sidebar layout
           ══════════════════════════════════════════════════════ */}
-      {token && (
+      {(token || isGuest) && (
         <div className="app-layout">
 
           {/* Mobile top strip */}
@@ -1191,18 +1416,26 @@ function App() {
 
             <div className="sidebar-bottom">
               <div className="sidebar-divider" />
-              {userRole === "admin" && (
+              {!isGuest && userRole === "admin" && (
                 <button type="button"
                   className={`sidebar-item${isAdminPage ? " active" : ""}`}
                   onClick={() => navigateTo("/admin/workouts")}>
                   <span className="sidebar-icon">🛡️</span><span>Admin</span>
                 </button>
               )}
-              <button type="button"
-                className={`sidebar-item${isAccountPage ? " active" : ""}`}
-                onClick={() => navigateTo("/account")}>
-                <span className="sidebar-icon">⚙️</span><span>Account</span>
-              </button>
+              {!isGuest && (
+                <button type="button"
+                  className={`sidebar-item${isAccountPage ? " active" : ""}`}
+                  onClick={() => navigateTo("/account")}>
+                  <span className="sidebar-icon">⚙️</span><span>Account</span>
+                </button>
+              )}
+              {isGuest && (
+                <button type="button" className="sidebar-item sidebar-signup-cta"
+                  onClick={() => { handleExitGuest(); navigateTo("/login"); }}>
+                  <span className="sidebar-icon">🔑</span><span>Create Account</span>
+                </button>
+              )}
               <button type="button" className="sidebar-item sidebar-darkmode-btn"
                 onClick={() => setDarkMode((p) => !p)}>
                 <span className="sidebar-icon">{darkMode ? "☀️" : "🌙"}</span>
@@ -1210,7 +1443,9 @@ function App() {
               </button>
               <div className="sidebar-user-row">
                 <span className="sidebar-username">👤 {userName}</span>
-                <button type="button" className="sidebar-logout-btn" onClick={handleLogout}>Logout</button>
+                <button type="button" className="sidebar-logout-btn" onClick={handleLogout}>
+                  {isGuest ? "Exit" : "Logout"}
+                </button>
               </div>
             </div>
           </aside>
@@ -1221,6 +1456,21 @@ function App() {
           {/* ── Main content ── */}
           <main className="main-content">
             <div className="page-container">
+
+              {/* ─── Guest banner ─── */}
+              {isGuest && (
+                <div className="guest-banner">
+                  <span className="guest-banner-icon">👤</span>
+                  <span className="guest-banner-text">
+                    <strong>Guest mode</strong>: Your data is saved in this browser only and will be lost if you clear storage.{" "}
+                    <button type="button" className="guest-banner-link"
+                      onClick={() => { handleExitGuest(); navigateTo("/login"); }}>
+                      Create a free account
+                    </button>{" "}
+                    to save your progress permanently.
+                  </span>
+                </div>
+              )}
 
               {/* ─── Programs page ─── */}
               {isProgramsPage && (
@@ -1236,6 +1486,7 @@ function App() {
 
                     {isAddProgramOpen && (
                       <ProgramForm
+                        workouts={workouts}
                         items={programItems} setItems={setProgramItems}
                         title={programTitle} setTitle={setProgramTitle}
                         onSubmit={(e) => { handleAddProgram(e); setIsAddProgramOpen(false); }}
@@ -1301,10 +1552,11 @@ function App() {
                                     </li>
                                   ))}
                                 </ul>
-                                <div className="actions">
-                                  <button type="button" className="secondary" onClick={() => navigateTo(`/programs/${program.id}`)}>Details</button>
-                                  <button type="button" onClick={() => startEditing(program)} disabled={program.deleted}>Edit</button>
-                                  <button type="button" className="danger" onClick={() => handleSoftDeleteProgram(program.id)} disabled={program.deleted}>Delete</button>
+                                <div className="actions program-actions">
+                                  <button type="button" className="secondary program-action-btn" onClick={() => navigateTo(`/programs/${program.id}`)}>Details</button>
+                                  <button type="button" className="secondary program-action-btn" onClick={() => startEditing(program)} disabled={program.deleted}>Edit</button>
+                                  <button type="button" className="danger program-action-btn" onClick={() => handleSoftDeleteProgram(program.id)} disabled={program.deleted}>Delete</button>
+                                  <button type="button" className="program-action-btn program-checkin-btn" onClick={() => handleAddWorkoutDate(program.id, new Date().toISOString())} disabled={program.deleted}>✓ Today</button>
                                 </div>
                               </>
                             )}
@@ -1317,7 +1569,7 @@ function App() {
                   {/* Workout History */}
                   {(() => {
                     const allDates = [];
-                    programs.forEach((p) => (p.workout_dates || []).forEach((d) => allDates.push({ date: d, program: p.title })));
+                    programs.forEach((p) => (p.workout_dates || []).forEach((d) => allDates.push({ date: d, program: p.title, programId: p.id })));
                     allDates.sort((a, b) => b.date.localeCompare(a.date));
                     return allDates.length > 0 ? (
                       <div className="card history-card">
@@ -1329,6 +1581,9 @@ function App() {
                                 {new Date(item.date).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
                               </span>
                               <span className="history-program">{item.program}</span>
+                              <button type="button" className="history-delete-btn"
+                                onClick={() => handleDeleteWorkoutDate(item.programId, item.date)}
+                                title="Remove this session">×</button>
                             </li>
                           ))}
                         </ul>
@@ -1514,66 +1769,106 @@ function App() {
               {isAdvicePage && (
                 <div className="card advice-card">
                   <div className="advice-box">
-                    <div className="body-metrics-section">
-                      <h3>Body Metrics</h3>
-                      {metricsLoaded && !heightCm && !weightKg && !bodyFatPct && (
-                        <p className="metrics-hint">Add your height, weight, and body fat % for more personalized AI recommendations.</p>
-                      )}
-                      <div className="metrics-row">
-                        <label><span className="field-hint">Height (cm)</span>
-                          <input type="number" min="50" max="300" step="0.1" placeholder="e.g. 175"
-                            value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
-                        </label>
-                        <label><span className="field-hint">Weight (kg)</span>
-                          <input type="number" min="20" max="500" step="0.1" placeholder="e.g. 70"
-                            value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
-                        </label>
-                        <label><span className="field-hint">Body fat %</span>
-                          <input type="number" min="1" max="70" step="0.1" placeholder="e.g. 15"
-                            value={bodyFatPct} onChange={(e) => setBodyFatPct(e.target.value)} />
-                        </label>
-                        <button type="button" onClick={handleSaveMetrics} disabled={metricsSaving}>
-                          {metricsSaving ? "Saving…" : "Save metrics"}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="equipment-selector">
-                      <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
-                      <select id="equipment-select" value={userEquipment}
-                        onChange={(e) => handleEquipmentChange(e.target.value)}>
-                        <option value="gym">Gym (full equipment)</option>
-                        <option value="dumbbells">Home (dumbbells only)</option>
-                        <option value="no equipment">No equipment (bodyweight)</option>
-                      </select>
-                    </div>
-                    <button type="button" onClick={handleGetDailyAdvice} disabled={adviceLoading}>
-                      {adviceLoading ? "Generating advice…" : "Get free daily workout advice"}
-                    </button>
-                    {adviceFeedback && (
-                      <div className="advice-limit-msg">
-                        <span className="advice-limit-icon">⏳</span>
-                        <span>{adviceFeedback}</span>
-                      </div>
-                    )}
-                    {dailyAdvice && (
-                      <div className="advice-result">
-                        <div className="advice-result-header">
-                          <h3 className="advice-result-title">Your Daily Advice</h3>
-                          <div className="advice-meta">
-                            {adviceSource && (
-                              <span className="advice-source-badge">
-                                {adviceSource === "cached" ? "📋 Reused" : adviceSource === "fallback" ? "🤖 Built-in" : adviceSource.startsWith("hf") ? "🧠 AI" : `🤖 ${adviceSource}`}
-                              </span>
-                            )}
-                            {adviceCachedAt && (
-                              <span className="advice-timestamp">
-                                {new Date(adviceCachedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                              </span>
-                            )}
+                    {isGuest ? (
+                      <>
+                        <div className="advice-guest-notice">
+                          <div className="advice-guest-notice-icon">🔒</div>
+                          <div>
+                            <strong>Personalized advice requires a free account.</strong>
+                            <p>Create an account so the AI can analyze your actual workout programs, body metrics, and equipment — and give you advice that's actually relevant to you.</p>
+                            <button type="button" className="info-cta" style={{ marginTop: "0.6rem" }}
+                              onClick={() => { setIsRegister(true); navigateTo("/login"); }}>
+                              Create free account →
+                            </button>
                           </div>
                         </div>
-                        <AdviceRenderer text={dailyAdvice} />
-                      </div>
+                        <div className="advice-guest-example-section">
+                          <button type="button" onClick={handleGetDailyAdvice} disabled={adviceLoading}>
+                            {adviceLoading ? "Loading…" : "Show example workout advice"}
+                          </button>
+                          {adviceFeedback && (
+                            <div className="advice-limit-msg">
+                              <span className="advice-limit-icon">⏳</span>
+                              <span>{adviceFeedback}</span>
+                            </div>
+                          )}
+                          {dailyAdvice && (
+                            <div className="advice-result">
+                              <div className="advice-result-header">
+                                <h3 className="advice-result-title">Example Advice</h3>
+                              </div>
+                              <div className="advice-generic-disclaimer">
+                                ⚠️ This is generic advice for a standard home dumbbell program. It is not based on your workouts, body metrics, or goals. Create an account to get personalized advice for your program!
+                              </div>
+                              <AdviceRenderer text={dailyAdvice} />
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="body-metrics-section">
+                          <h3>Body Metrics</h3>
+                          {metricsLoaded && !heightCm && !weightKg && !bodyFatPct && (
+                            <p className="metrics-hint">Add your height, weight, and body fat % for more personalized AI recommendations.</p>
+                          )}
+                          <div className="metrics-row">
+                            <label><span className="field-hint">Height (cm)</span>
+                              <input type="number" min="50" max="300" step="0.1" placeholder="e.g. 175"
+                                value={heightCm} onChange={(e) => setHeightCm(e.target.value)} />
+                            </label>
+                            <label><span className="field-hint">Weight (kg)</span>
+                              <input type="number" min="20" max="500" step="0.1" placeholder="e.g. 70"
+                                value={weightKg} onChange={(e) => setWeightKg(e.target.value)} />
+                            </label>
+                            <label><span className="field-hint">Body fat %</span>
+                              <input type="number" min="1" max="70" step="0.1" placeholder="e.g. 15"
+                                value={bodyFatPct} onChange={(e) => setBodyFatPct(e.target.value)} />
+                            </label>
+                            <button type="button" onClick={handleSaveMetrics} disabled={metricsSaving}>
+                              {metricsSaving ? "Saving…" : "Save metrics"}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="equipment-selector">
+                          <label htmlFor="equipment-select"><strong>My equipment:</strong></label>
+                          <select id="equipment-select" value={userEquipment}
+                            onChange={(e) => handleEquipmentChange(e.target.value)}>
+                            <option value="gym">Gym (full equipment)</option>
+                            <option value="dumbbells">Home (dumbbells only)</option>
+                            <option value="no equipment">No equipment (bodyweight)</option>
+                          </select>
+                        </div>
+                        <button type="button" onClick={handleGetDailyAdvice} disabled={adviceLoading}>
+                          {adviceLoading ? "Generating advice…" : "Get free daily workout advice"}
+                        </button>
+                        {adviceFeedback && (
+                          <div className="advice-limit-msg">
+                            <span className="advice-limit-icon">⏳</span>
+                            <span>{adviceFeedback}</span>
+                          </div>
+                        )}
+                        {dailyAdvice && (
+                          <div className="advice-result">
+                            <div className="advice-result-header">
+                              <h3 className="advice-result-title">Your Daily Advice</h3>
+                              <div className="advice-meta">
+                                {adviceSource && (
+                                  <span className="advice-source-badge">
+                                    {adviceSource === "cached" ? "📋 Reused" : adviceSource === "fallback" ? "🤖 Built-in" : adviceSource.startsWith("hf") ? "🧠 AI" : `🤖 ${adviceSource}`}
+                                  </span>
+                                )}
+                                {adviceCachedAt && (
+                                  <span className="advice-timestamp">
+                                    {new Date(adviceCachedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <AdviceRenderer text={dailyAdvice} />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
