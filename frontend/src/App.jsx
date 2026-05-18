@@ -923,6 +923,41 @@ function App() {
     }));
   }
 
+  async function migrateGuestData(newToken) {
+    const gd = getGuestData();
+    const programs = gd.programs || [];
+    const metricsLog = gd.metricsLog || [];
+    const personalRecords = gd.personalRecords || [];
+
+    for (const prog of programs) {
+      try {
+        const cleanItems = (prog.description || []).map((item) => ({
+          ...item,
+          workoutId: typeof item.workoutId === "string" && /^g\d+$/.test(item.workoutId) ? null : item.workoutId,
+        }));
+        const created = await createProgram(newToken, { title: prog.title, description: cleanItems });
+        for (const d of (prog.workout_dates || [])) {
+          try { await addProgramWorkoutDate(newToken, created.id, d); } catch { /* skip bad dates */ }
+        }
+      } catch { /* skip failed programs */ }
+    }
+
+    for (const entry of metricsLog) {
+      try { await saveBodyMetricsEntry(newToken, { weight_kg: entry.weight_kg, body_fat_pct: entry.body_fat_pct, note: entry.note }); } catch { /* skip */ }
+    }
+
+    for (const pr of personalRecords) {
+      try { await savePersonalRecord(newToken, { exercise_name: pr.exercise_name, weight_kg: pr.weight_kg, reps: pr.reps }); } catch { /* skip */ }
+    }
+
+    if (gd.bodyMetrics && (gd.bodyMetrics.height_cm || gd.bodyMetrics.weight_kg)) {
+      try { await updateBodyMetrics(newToken, gd.bodyMetrics); } catch { /* skip */ }
+    }
+    if (gd.equipment) {
+      try { await updateEquipment(newToken, gd.equipment); } catch { /* skip */ }
+    }
+  }
+
   async function handleAuthSubmit(event) {
     event.preventDefault();
     setError(""); setMessage("");
@@ -934,7 +969,17 @@ function App() {
         setMessage("Registration successful. You can now login.");
         setIsRegister(false); setPassword(""); return;
       }
+      const wasGuest = isGuest;
       const data = await loginUser({ email, password });
+      if (wasGuest) {
+        const gd = getGuestData();
+        const hasData = (gd.programs?.length || 0) + (gd.metricsLog?.length || 0) + (gd.personalRecords?.length || 0);
+        if (hasData > 0) {
+          setAuthWaitHint("Importing your guest data into your account…");
+          await migrateGuestData(data.token);
+        }
+        localStorage.removeItem("guestData");
+      }
       localStorage.removeItem("guestMode");
       setIsGuest(false);
       setToken(data.token);
