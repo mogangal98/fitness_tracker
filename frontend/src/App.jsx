@@ -1356,7 +1356,7 @@ function App() {
                   </ul>
                   <div className="info-cta-group">
                     <button type="button" className="info-cta-guest info-cta-guest--hero" onClick={handleStartGuest}>
-                      Try it free. No Login needed
+                      Try it for free. No Login needed
                     </button>
                     <button type="button" className="info-cta" onClick={() => { setIsRegister(true); navigateTo("/login"); }}>
                       Create free account →
@@ -1645,7 +1645,7 @@ function App() {
                                   <button type="button" className="secondary program-action-btn" onClick={() => navigateTo(`/programs/${program.id}`)}>Details</button>
                                   <button type="button" className="secondary program-action-btn" onClick={() => startEditing(program)} disabled={program.deleted}>Edit</button>
                                   <button type="button" className="danger program-action-btn" onClick={() => handleSoftDeleteProgram(program.id)} disabled={program.deleted}>Delete</button>
-                                  <button type="button" className="program-action-btn program-checkin-btn" onClick={() => handleAddWorkoutDate(program.id, new Date().toISOString())} disabled={program.deleted}>✓ Today</button>
+                                  <button type="button" className="program-action-btn program-checkin-btn" onClick={() => handleAddWorkoutDate(program.id, new Date().toISOString())} disabled={program.deleted}>✓ Worked out today</button>
                                 </div>
                               </>
                             )}
