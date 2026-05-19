@@ -671,6 +671,8 @@ function App() {
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [deleteAccountError, setDeleteAccountError] = useState("");
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(() => !localStorage.getItem("token"));
+  const [serverWaking, setServerWaking] = useState(false);
 
   useEffect(() => {
     const onPopState = () => setCurrentPath(window.location.pathname);
@@ -710,9 +712,37 @@ function App() {
   // Close sidebar on navigation
   useEffect(() => { setIsSidebarOpen(false); }, [currentPath]);
 
+  // Document title per page
+  useEffect(() => {
+    const titles = { "/": "Programs", "/programs": "Programs", "/progress": "Progress", "/advice": "AI Advice", "/tools": "Tools", "/account": "Account", "/login": "Login", "/about": "Fitness Tracker", "/admin/workouts": "Admin" };
+    const label = titles[currentPath];
+    document.title = label && label !== "Fitness Tracker" ? `${label} | Fitness Tracker` : "Fitness Tracker";
+  }, [currentPath]);
+
+  // Show server-waking hint if initial data load takes too long
+  useEffect(() => {
+    if (dataLoaded || !token) return;
+    const t = setTimeout(() => setServerWaking(true), 6000);
+    return () => clearTimeout(t);
+  }, [dataLoaded, token]);
+
+  // Redirect unauthenticated users from unknown paths to landing
+  useEffect(() => {
+    if (!token && !isGuest && currentPath !== "/" && currentPath !== "/about" && currentPath !== "/login" && currentPath !== "/tools") {
+      navigateTo("/");
+    }
+  }, [token, isGuest, currentPath]);
+
   async function loadPrograms(t) {
-    try { const data = await getPrograms(t); setPrograms(data.filter((p) => !p.deleted)); }
-    catch (err) { setError(err.message); }
+    try {
+      const data = await getPrograms(t);
+      setPrograms(data.filter((p) => !p.deleted));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDataLoaded(true);
+      setServerWaking(false);
+    }
   }
   async function loadWorkouts(t) {
     try { setWorkouts(await getWorkouts(t)); }
@@ -1279,6 +1309,7 @@ function App() {
   }
 
   const selectedProgram = isProgramDetailsPage ? programs.find((p) => p.id === programDetailsId) : null;
+  const isNotFoundPage = (token || isGuest) && !isProgramsPage && !isProgramDetailsPage && !isProgressPage && !isAdvicePage && !isToolsPage && !isAccountPage && !isAdminPage;
 
   /* ─────────────────────────────────────────────────────────────
      RENDER
@@ -1517,6 +1548,14 @@ function App() {
                 </div>
               )}
 
+              {/* ─── Loading / server waking banner ─── */}
+              {token && !dataLoaded && (
+                <div className="loading-banner">
+                  <span className="loading-spinner" />
+                  <span>{serverWaking ? "Server is waking up (free tier — may take ~60s on first visit)…" : "Loading your data…"}</span>
+                </div>
+              )}
+
               {/* ─── Programs page ─── */}
               {isProgramsPage && (
                 <>
@@ -1543,7 +1582,12 @@ function App() {
                     )}
 
                     {programs.length === 0 && !isAddProgramOpen ? (
-                      <p>No programs yet. Click "+ New program" to get started.</p>
+                      <div className="empty-state">
+                        <div className="empty-state-icon">🏋️</div>
+                        <h3 className="empty-state-title">No programs yet</h3>
+                        <p className="empty-state-desc">Build your first workout program to start tracking your sessions and logging progress.</p>
+                        <button type="button" onClick={() => setIsAddProgramOpen(true)}>+ Create your first program</button>
+                      </div>
                     ) : (
                       <ul>
                         {programs.map((program) => (
@@ -1982,6 +2026,18 @@ function App() {
 
               {/* ─── Tools page (logged in) ─── */}
               {isToolsPage && <FitnessTools />}
+
+              {/* ─── 404 page ─── */}
+              {isNotFoundPage && (
+                <div className="card not-found-card">
+                  <div className="empty-state">
+                    <div className="empty-state-icon">🔍</div>
+                    <h3 className="empty-state-title">Page not found</h3>
+                    <p className="empty-state-desc">The page you're looking for doesn't exist.</p>
+                    <button type="button" onClick={() => navigateTo("/")}>← Go home</button>
+                  </div>
+                </div>
+              )}
 
             </div>
           </main>
